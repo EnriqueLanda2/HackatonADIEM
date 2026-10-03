@@ -64,7 +64,7 @@ export default function ParcelaCard({
   return (
     <div
       onClick={onSelect}
-      className={`bg-[#273a06] rounded-2xl p-5 border shadow-lg shadow-black/15 flex flex-col justify-between transition-all cursor-pointer ${
+      className={`bg-[#161616] rounded-2xl p-5 border shadow-lg shadow-black/15 flex flex-col justify-between transition-all cursor-pointer ${
         selected
           ? 'border-[#EDE383] ring-2 ring-[#EDE383]/40'
           : 'border-[#8DA432]/35 hover:border-[#8DA432]'
@@ -74,7 +74,7 @@ export default function ParcelaCard({
         {/* Cabecera con Nombre del Cultivo y Semáforo */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-2xl p-1.5 rounded-xl bg-[#1c2a04] border border-[#8DA432]/30">{cropIcon}</span>
+            <span className="text-2xl p-1.5 rounded-xl bg-[#1e1e1e] border border-[#8DA432]/30">{cropIcon}</span>
             <div>
               <h3 className="font-bold text-[#FFFCE9] text-base tracking-tight leading-tight">
                 {parcela.nombre || `${zoneName} · ${cropTitle}`}
@@ -95,7 +95,7 @@ export default function ParcelaCard({
         </div>
 
         {/* Módulo Principal: Humedad del Suelo */}
-        <div className="bg-[#1c2a04] rounded-xl p-3 mb-3 border border-[#8DA432]/25">
+        <div className="bg-[#1e1e1e] rounded-xl p-3 mb-3 border border-[#8DA432]/25">
           <div className="flex justify-between items-baseline mb-1.5">
             <span className="text-xs font-bold text-[#EDE383] flex items-center gap-1">
               <span>💧 Humedad del Suelo</span>
@@ -105,7 +105,7 @@ export default function ParcelaCard({
             </span>
           </div>
 
-          <div className="w-full bg-[#2a3d06] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
+          <div className="w-full bg-[#2a2a2a] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
             <div
               className={`h-full transition-all duration-500 ${barColor}`}
               style={{ width: `${Math.min(100, Math.max(0, humedad_suelo))}%` }}
@@ -120,7 +120,7 @@ export default function ParcelaCard({
 
         {/* Matriz de Sensores Críticos */}
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-[#1c2a04] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
+          <div className="bg-[#1e1e1e] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
             <div className="text-[10px] text-[#EDE383] font-semibold mb-0.5">🌡️ Temp</div>
             <div className="text-sm font-extrabold text-[#FFFCE9]">
               {temperatura.toFixed(1)}°C
@@ -128,7 +128,7 @@ export default function ParcelaCard({
             <div className="text-[9px] text-[#EDE383]/60 font-medium">Suelo</div>
           </div>
 
-          <div className="bg-[#1c2a04] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
+          <div className="bg-[#1e1e1e] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
             <div className="text-[10px] text-[#EDE383] font-semibold mb-0.5">🧪 pH Suelo</div>
             <div className="text-sm font-extrabold text-[#8DA432]">
               {phVal.toFixed(1)}
@@ -136,7 +136,7 @@ export default function ParcelaCard({
             <div className="text-[9px] text-[#EDE383]/60 font-medium truncate">{phStatus}</div>
           </div>
 
-          <div className="bg-[#1c2a04] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
+          <div className="bg-[#1e1e1e] p-2.5 rounded-xl border border-[#8DA432]/25 text-center">
             <div className="text-[10px] text-[#EDE383] font-semibold mb-0.5">🌫️ HR Aire</div>
             <div className="text-sm font-extrabold text-[#FFFCE9]">
               {humedad_ambiental.toFixed(0)}%

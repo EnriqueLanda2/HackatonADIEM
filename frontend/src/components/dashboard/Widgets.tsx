@@ -24,12 +24,12 @@ export function Header({
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo y Nombre */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#233506] border border-[#8DA432]/50 flex items-center justify-center text-2xl shadow-inner">
+          <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] border border-[#8DA432]/50 flex items-center justify-center text-2xl shadow-inner">
             🌱
           </div>
           <div className="flex items-baseline gap-2">
             <h1 className="text-[#FFFCE9] font-bold text-xl tracking-tight">
-              Riego Inteligente
+              agromAI
             </h1>
             <span className="text-[#EDE383] text-sm font-medium">Morelos · AgroTech</span>
           </div>
@@ -40,7 +40,7 @@ export function Header({
           {onOpenCreateParcel && (
             <button
               onClick={onOpenCreateParcel}
-              className="bg-[#8DA432] hover:bg-[#233506] text-[#FFFCE9] text-xs font-bold px-4 py-2 rounded-xl border border-[#EDE383]/40 shadow-md shadow-black/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#8DA432] hover:bg-[#1a1a1a] text-[#FFFCE9] text-xs font-bold px-4 py-2 rounded-xl border border-[#EDE383]/40 shadow-md shadow-black/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -56,7 +56,7 @@ export function Header({
 
           <button
             onClick={onRefresh}
-            className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-[#8DA432]/60 bg-[#233506]/60 text-[#FFFCE9] hover:bg-[#8DA432] hover:text-[#FFFCE9] transition-all font-medium cursor-pointer shadow-sm"
+            className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-[#8DA432]/60 bg-[#1a1a1a]/60 text-[#FFFCE9] hover:bg-[#8DA432] hover:text-[#FFFCE9] transition-all font-medium cursor-pointer shadow-sm"
           >
             <svg
               width="13"
@@ -97,7 +97,7 @@ export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
   };
 
   return (
-    <div className="bg-[#273a06] rounded-2xl p-5 border border-[#8DA432]/35 flex flex-col justify-between shadow-lg shadow-black/15">
+    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 flex flex-col justify-between shadow-lg shadow-black/15">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-[#FFFCE9] font-bold text-base">
           <span className="text-xl">🚰</span>
@@ -132,7 +132,7 @@ export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
         </button>
       </div>
 
-      <div className="w-full bg-[#1c2a04] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
+      <div className="w-full bg-[#1e1e1e] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
         <div
           className={`h-full transition-all duration-1000 ${
             isCritical ? 'bg-[#925E06]' : 'bg-[#8DA432]'
@@ -169,7 +169,7 @@ export function SimulationPanel({
   ];
 
   return (
-    <div className="bg-[#273a06] rounded-2xl p-5 border border-[#8DA432]/35 mt-6 shadow-lg shadow-black/15">
+    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 mt-6 shadow-lg shadow-black/15">
       <h3 className="text-[#FFFCE9] text-sm font-bold mb-3 flex items-center justify-between">
         <span className="flex items-center gap-2">
           <span>🎮</span> Simulación de Sensores (Tinkercad & Banco de Pruebas)
@@ -180,7 +180,7 @@ export function SimulationPanel({
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         {sliders.map(({ key, label, min, max, step, unit }) => (
-          <div key={key} className="bg-[#1c2a04] p-3 rounded-xl border border-[#8DA432]/25">
+          <div key={key} className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-[#EDE383] text-[11px] font-medium truncate">{label}</span>
               <span className="text-[#FFFCE9] font-mono font-bold text-[11px]">
@@ -195,7 +195,7 @@ export function SimulationPanel({
               step={step}
               value={data[key] ?? (key === 'ph_tierra' ? 6.8 : 50)}
               onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-[#2a3d06] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
+              className="w-full h-1.5 bg-[#2a2a2a] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
             />
           </div>
         ))}

@@ -10,7 +10,7 @@ interface AlertsPanelProps {
 export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
   if (alertas.length === 0) {
     return (
-      <div className="bg-[#273a06] border border-[#8DA432]/30 rounded-2xl p-5 text-center shadow-lg shadow-black/15">
+      <div className="bg-[#161616] border border-[#8DA432]/30 rounded-2xl p-5 text-center shadow-lg shadow-black/15">
         <span className="text-3xl">✅</span>
         <p className="text-[#EDE383] text-sm font-semibold mt-2">Sin alertas activas · Todos los parámetros en rango óptimo</p>
       </div>
@@ -37,7 +37,7 @@ export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
       label: 'MEDIA',
     },
     baja: {
-      bg: 'bg-[#1c2a04] border-[#8DA432]/40',
+      bg: 'bg-[#1e1e1e] border-[#8DA432]/40',
       icon: 'ℹ️',
       badge: 'bg-[#365004] text-[#EDE383]',
       label: 'INFO',
@@ -53,7 +53,7 @@ export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
   };
 
   return (
-    <div className="bg-[#273a06] rounded-2xl p-5 border border-[#925E06]/50 shadow-lg shadow-black/15 space-y-3">
+    <div className="bg-[#161616] rounded-2xl p-5 border border-[#925E06]/50 shadow-lg shadow-black/15 space-y-3">
       <div className="flex items-center justify-between pb-2 border-b border-[#8DA432]/20">
         <h2 className="text-[#FFFCE9] font-bold text-base flex items-center gap-2">
           <span>🔔</span> Alertas Activas del Sembradío

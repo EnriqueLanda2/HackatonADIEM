@@ -95,7 +95,7 @@ export default function CreateParcelModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#1e2c04] border border-[#8DA432]/40 rounded-3xl shadow-2xl p-6 my-8 text-[#FFFCE9] max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#121212] border border-[#8DA432]/40 rounded-3xl shadow-2xl p-6 my-8 text-[#FFFCE9] max-h-[90vh] overflow-y-auto">
         {/* Header del Modal */}
         <div className="flex items-center justify-between pb-4 border-b border-[#8DA432]/25 mb-5">
           <div className="flex items-center gap-3">
@@ -144,7 +144,7 @@ export default function CreateParcelModal({
                   placeholder="Ej. Parcela Poniente - Invernadero A"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432]"
                 />
               </div>
 
@@ -157,7 +157,7 @@ export default function CreateParcelModal({
                   placeholder="Ej. Cooperativa Yautepec"
                   value={propietario}
                   onChange={(e) => setPropietario(e.target.value)}
-                  className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432]"
                 />
               </div>
 
@@ -171,7 +171,7 @@ export default function CreateParcelModal({
                   min="0.1"
                   value={superficie}
                   onChange={(e) => setSuperficie(parseFloat(e.target.value) || 1)}
-                  className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
                 />
               </div>
 
@@ -182,7 +182,7 @@ export default function CreateParcelModal({
                 <select
                   value={zona3d}
                   onChange={(e) => setZona3d(e.target.value as Zona3D)}
-                  className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
                 >
                   <option value="zona_alta">Zona Alta (Topografía elevada - 1520 msnm)</option>
                   <option value="zona_media">Zona Media (Valle intermedio - 1480 msnm)</option>
@@ -197,7 +197,7 @@ export default function CreateParcelModal({
                 <select
                   value={modoOperacion}
                   onChange={(e) => setModoOperacion(e.target.value as ModoOperacion)}
-                  className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
                 >
                   <option value="automatico">Riego Automático (Por sensores y pronóstico)</option>
                   <option value="manual">Manual (Operado por usuario)</option>
@@ -220,7 +220,7 @@ export default function CreateParcelModal({
                 className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   tieneCultivo
                     ? 'bg-[#8DA432] border-[#EDE383] text-[#FFFCE9] shadow-lg shadow-black/20 font-bold'
-                    : 'bg-[#273a06] border-[#8DA432]/25 text-[#EDE383]/70 hover:bg-[#8DA432]/20'
+                    : 'bg-[#161616] border-[#8DA432]/25 text-[#EDE383]/70 hover:bg-[#8DA432]/20'
                 }`}
               >
                 <span className="text-2xl">🌱</span>
@@ -238,7 +238,7 @@ export default function CreateParcelModal({
                 className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                   !tieneCultivo
                     ? 'bg-[#925E06] border-[#EDE383] text-[#FFFCE9] shadow-lg shadow-black/20 font-bold'
-                    : 'bg-[#273a06] border-[#8DA432]/25 text-[#EDE383]/70 hover:bg-[#8DA432]/20'
+                    : 'bg-[#161616] border-[#8DA432]/25 text-[#EDE383]/70 hover:bg-[#8DA432]/20'
                 }`}
               >
                 <span className="text-2xl">🍂</span>
@@ -253,7 +253,7 @@ export default function CreateParcelModal({
 
             {/* Opciones según tenga cultivo o no */}
             {tieneCultivo ? (
-              <div className="bg-[#273a06] rounded-2xl p-4 border border-[#8DA432]/30 space-y-3">
+              <div className="bg-[#161616] rounded-2xl p-4 border border-[#8DA432]/30 space-y-3">
                 <div>
                   <label className="block text-xs text-[#EDE383] mb-1 font-semibold">
                     Selecciona qué cultivo tiene:
@@ -261,7 +261,7 @@ export default function CreateParcelModal({
                   <select
                     value={cultivoKey}
                     onChange={(e) => setCultivoKey(e.target.value)}
-                    className="w-full bg-[#1c2a04] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
+                    className="w-full bg-[#1e1e1e] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
                   >
                     {Object.entries(CULTIVOS_MORELOS).map(([key, c]) => (
                       <option key={key} value={key}>
@@ -273,7 +273,7 @@ export default function CreateParcelModal({
 
                 {/* Resumen del cultivo seleccionado */}
                 {selectedCultivo && (
-                  <div className="bg-[#1c2a04] border border-[#8DA432]/30 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="bg-[#1e1e1e] border border-[#8DA432]/30 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>
                       <div className="text-[10px] text-[#EDE383]/70">Humedad Óptima</div>
                       <div className="font-extrabold text-[#8DA432] text-sm">
@@ -305,14 +305,14 @@ export default function CreateParcelModal({
                 )}
               </div>
             ) : (
-              <div className="bg-[#273a06] rounded-2xl p-4 border border-[#8DA432]/30 space-y-2">
+              <div className="bg-[#161616] rounded-2xl p-4 border border-[#8DA432]/30 space-y-2">
                 <label className="block text-xs text-[#EDE383] mb-1 font-semibold">
                   Condición del terreno sin cultivo:
                 </label>
                 <select
                   value={estadoDescanso}
                   onChange={(e) => setEstadoDescanso(e.target.value)}
-                  className="w-full bg-[#1c2a04] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
+                  className="w-full bg-[#1e1e1e] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-sm text-[#FFFCE9] focus:outline-none focus:border-[#8DA432]"
                 >
                   <option value="Terreno en descanso y rotación">
                     🍂 Terreno en descanso / Barbecho biológico
@@ -347,8 +347,8 @@ export default function CreateParcelModal({
               <div
                 className={`p-3.5 rounded-2xl border transition-all ${
                   sensorSueloActivo
-                    ? 'bg-[#273a06] border-[#8DA432]/50'
-                    : 'bg-[#1c2a04] border-white/5 opacity-60'
+                    ? 'bg-[#161616] border-[#8DA432]/50'
+                    : 'bg-[#1e1e1e] border-white/5 opacity-60'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -375,7 +375,7 @@ export default function CreateParcelModal({
                       max={100}
                       value={sensorSueloValor}
                       onChange={(e) => setSensorSueloValor(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-[#1c2a04] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
+                      className="w-full h-1.5 bg-[#1e1e1e] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
                     />
                   </div>
                 )}
@@ -385,8 +385,8 @@ export default function CreateParcelModal({
               <div
                 className={`p-3.5 rounded-2xl border transition-all ${
                   sensorAmbienteActivo
-                    ? 'bg-[#273a06] border-[#8DA432]/50'
-                    : 'bg-[#1c2a04] border-white/5 opacity-60'
+                    ? 'bg-[#161616] border-[#8DA432]/50'
+                    : 'bg-[#1e1e1e] border-white/5 opacity-60'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -413,7 +413,7 @@ export default function CreateParcelModal({
                       max={100}
                       value={sensorAmbienteValor}
                       onChange={(e) => setSensorAmbienteValor(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-[#1c2a04] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
+                      className="w-full h-1.5 bg-[#1e1e1e] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
                     />
                   </div>
                 )}
@@ -423,8 +423,8 @@ export default function CreateParcelModal({
               <div
                 className={`p-3.5 rounded-2xl border transition-all ${
                   sensorTempActivo
-                    ? 'bg-[#273a06] border-[#8DA432]/50'
-                    : 'bg-[#1c2a04] border-white/5 opacity-60'
+                    ? 'bg-[#161616] border-[#8DA432]/50'
+                    : 'bg-[#1e1e1e] border-white/5 opacity-60'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -452,7 +452,7 @@ export default function CreateParcelModal({
                       step={0.5}
                       value={sensorTempValor}
                       onChange={(e) => setSensorTempValor(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-[#1c2a04] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
+                      className="w-full h-1.5 bg-[#1e1e1e] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
                     />
                   </div>
                 )}
@@ -462,8 +462,8 @@ export default function CreateParcelModal({
               <div
                 className={`p-3.5 rounded-2xl border transition-all ${
                   sensorPhActivo
-                    ? 'bg-[#273a06] border-[#8DA432]/50'
-                    : 'bg-[#1c2a04] border-white/5 opacity-60'
+                    ? 'bg-[#161616] border-[#8DA432]/50'
+                    : 'bg-[#1e1e1e] border-white/5 opacity-60'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -496,7 +496,7 @@ export default function CreateParcelModal({
                       step={0.1}
                       value={sensorPhValor}
                       onChange={(e) => setSensorPhValor(parseFloat(e.target.value))}
-                      className="w-full h-1.5 bg-[#1c2a04] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
+                      className="w-full h-1.5 bg-[#1e1e1e] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
                     />
                   </div>
                 )}
@@ -514,7 +514,7 @@ export default function CreateParcelModal({
               placeholder="Ej. Parcela con pendiente ligera, sistema de riego por goteo recién calibrado..."
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
-              className="w-full bg-[#273a06] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-xs text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432] resize-none"
+              className="w-full bg-[#161616] border border-[#8DA432]/35 rounded-xl px-3 py-2 text-xs text-[#FFFCE9] placeholder-[#EDE383]/40 focus:outline-none focus:border-[#8DA432] resize-none"
             />
           </div>
 

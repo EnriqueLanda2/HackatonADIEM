@@ -38,8 +38,13 @@ export default function DroneControlPanel({
 
   // Despachar misión de emergencia
   const handleDespacharDron = () => {
-    const res = api.despacharDronEmergencia();
-    showMsg(res.message);
+    if (dron?.mision_activa || dron?.estado === 'regando') {
+      const res = api.detenerDronEmergencia();
+      showMsg(res.message);
+    } else {
+      const res = api.despacharDronEmergencia();
+      showMsg(res.message);
+    }
     onRefresh();
   };
 
@@ -76,7 +81,7 @@ export default function DroneControlPanel({
   const enMision = dron?.mision_activa || dron?.estado === 'regando';
 
   return (
-    <div className="bg-[#273a06] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col gap-4">
+    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col gap-4">
       {/* ========================================================================= */}
       {/* CABECERA: SISTEMA DE RIEGO POR DRON & MODO MAESTRO                       */}
       {/* ========================================================================= */}
@@ -99,7 +104,7 @@ export default function DroneControlPanel({
         </div>
 
         {/* Interruptor Modo Automático vs Manual */}
-        <div className="flex items-center gap-1.5 bg-[#1c2a04] p-1.5 rounded-xl border border-[#8DA432]/30">
+        <div className="flex items-center gap-1.5 bg-[#1e1e1e] p-1.5 rounded-xl border border-[#8DA432]/30">
           <button
             onClick={() => {
               if (modoGlobal !== 'automatico') handleToggleModoGlobal();
@@ -142,7 +147,7 @@ export default function DroneControlPanel({
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 1. Tanque de Agua del Dron */}
-        <div className="bg-[#1c2a04] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
+        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center text-xs text-[#EDE383] mb-1">
               <span className="font-semibold">💧 Tanque de Agua del Dron</span>
@@ -161,7 +166,7 @@ export default function DroneControlPanel({
               </span>
             </div>
 
-            <div className="w-full bg-[#2a3d06] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
+            <div className="w-full bg-[#2a2a2a] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
               <div
                 className={`h-full transition-all duration-700 ${
                   sinAgua ? 'bg-[#925E06]' : 'bg-[#8DA432]'
@@ -178,7 +183,7 @@ export default function DroneControlPanel({
         </div>
 
         {/* 2. Sensor de Presencia en Base y Llave de Paso */}
-        <div className="bg-[#1c2a04] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
+        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
           <div>
             <div className="text-xs text-[#EDE383] mb-2 flex items-center justify-between font-semibold">
               <span>📡 Sensor de Presencia (Base)</span>
@@ -211,7 +216,7 @@ export default function DroneControlPanel({
               disabled={!dron.en_posicion_recarga}
               className={`flex-1 text-[11px] py-1.5 px-2 rounded-xl border font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 !dron.en_posicion_recarga
-                  ? 'bg-[#192604] border-[#8DA432]/20 text-[#EDE383]/40 cursor-not-allowed'
+                  ? 'bg-[#0f110c] border-[#8DA432]/20 text-[#EDE383]/40 cursor-not-allowed'
                   : dron.llave_paso_recarga_abierta
                   ? 'bg-[#8DA432] text-[#FFFCE9] border-[#FFFCE9]/50 shadow-md animate-pulse'
                   : 'bg-[#365004] text-[#FFFCE9] border-[#8DA432] hover:bg-[#8DA432]'
@@ -229,7 +234,7 @@ export default function DroneControlPanel({
         </div>
 
         {/* 3. Acciones de Riego de Emergencia */}
-        <div className="bg-[#1c2a04] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
+        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
           <div>
             <div className="text-xs text-[#EDE383] mb-1.5 font-bold">
               <span>🚨 Protocolo de Emergencia</span>
@@ -242,17 +247,16 @@ export default function DroneControlPanel({
           <div className="space-y-2">
             <button
               onClick={handleDespacharDron}
-              disabled={enMision}
               className={`w-full py-2.5 px-3 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 enMision
-                  ? 'bg-[#365004] text-[#FFFCE9] border border-[#EDE383] animate-pulse'
+                  ? 'bg-[#925E06] text-[#FFFCE9] border border-[#FFFCE9]/30 hover:bg-[#925E06]/80 animate-pulse'
                   : sinAgua
-                  ? 'bg-[#925E06] text-[#FFFCE9] border border-[#FFFCE9]/30 hover:bg-[#925E06]/80'
+                  ? 'bg-[#925E06]/50 text-[#FFFCE9] border border-[#FFFCE9]/30 hover:bg-[#925E06]/80'
                   : 'bg-[#8DA432] hover:bg-[#365004] text-[#FFFCE9] border border-[#EDE383]/40'
               }`}
             >
               {enMision ? (
-                <>🚁 Regando Parcelas en Vuelo...</>
+                <>🛑 Detener Dron en Vuelo</>
               ) : sinAgua ? (
                 <>⚠️ Dron Vacío (Llenar para Activar)</>
               ) : (

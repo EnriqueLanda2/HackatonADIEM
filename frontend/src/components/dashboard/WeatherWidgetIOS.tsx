@@ -25,7 +25,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
   const humedadRelativa = isNaN(rawHumedad) ? 60 : Math.round(rawHumedad);
 
   return (
-    <div className="bg-[#273a06] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col justify-between">
+    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col justify-between">
       {/* ========================================================================= */}
       {/* CABECERA ESTILO iOS WEATHER                                               */}
       {/* ========================================================================= */}
@@ -56,7 +56,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
 
         {/* Máx / Mín y fuente */}
         <div className="text-right">
-          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#1c2a04] border border-[#8DA432]/40 text-[#EDE383] font-semibold">
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#1e1e1e] border border-[#8DA432]/40 text-[#EDE383] font-semibold">
             {clima?.fuente_api?.includes('Google') ? 'Google Weather' : 'Satélite en vivo'}
           </span>
           <div className="text-xs text-[#EDE383] mt-2 font-semibold">
@@ -77,7 +77,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
             {clima.pronostico_por_hora.map((item, idx) => (
               <div
                 key={idx}
-                className="flex flex-col items-center min-w-[50px] py-2 px-1.5 rounded-xl bg-[#1c2a04] border border-[#8DA432]/20 text-center"
+                className="flex flex-col items-center min-w-[50px] py-2 px-1.5 rounded-xl bg-[#1e1e1e] border border-[#8DA432]/20 text-center"
               >
                 <span className="text-[10px] text-[#EDE383] font-medium">{item.hora}</span>
                 <span className="text-lg my-1">{item.icono}</span>
@@ -101,7 +101,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
       {/* ========================================================================= */}
       <div className="grid grid-cols-3 gap-2.5">
         {/* Probabilidad Lluvia */}
-        <div className="bg-[#1c2a04] p-3 rounded-xl border border-[#8DA432]/25">
+        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
           <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
             <span>🌧️ Lluvia</span>
           </div>
@@ -114,7 +114,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
         </div>
 
         {/* Viento */}
-        <div className="bg-[#1c2a04] p-3 rounded-xl border border-[#8DA432]/25">
+        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
           <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
             <span>💨 Viento</span>
           </div>
@@ -127,7 +127,7 @@ export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
         </div>
 
         {/* Humedad Ambiental */}
-        <div className="bg-[#1c2a04] p-3 rounded-xl border border-[#8DA432]/25">
+        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
           <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
             <span>🌫️ Humedad</span>
           </div>

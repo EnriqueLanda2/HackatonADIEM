@@ -5,14 +5,14 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Riego Inteligente | Estado de Morelos',
+  title: 'agromAI',
   description:
     'Sistema de automatización de riego agrícola con telemetría en tiempo real y visualización 3D. Cultivos: caña de azúcar, nopal, aguacate, tomate, maíz, sorgo, arroz.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Riego Inteligente',
+    title: 'agromAI',
   },
   icons: {
     icon: '/favicon.ico',
@@ -40,7 +40,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${inter.className} antialiased bg-[#192604] text-[#FFFCE9]`}
+        className={`${inter.className} antialiased bg-[#0f110c] text-[#FFFCE9]`}
       >
         {children}
       </body>

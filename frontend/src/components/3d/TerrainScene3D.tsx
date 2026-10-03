@@ -318,7 +318,7 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       {/* ETIQUETA FLOTANTE CON MAYOR PADDING Y ELEVACIÓN (NO TAPA EL CULTIVO)  */}
       {/* ===================================================================== */}
       <Html position={[0, 2.5, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-[#8DA432]/40 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
+        <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-[#8DA432]/40 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
           <div className="flex items-center gap-2">
             <span className="font-bold text-sm tracking-tight text-[#FFFCE9]">{parcela.parcela.nombre}</span>
             <span
@@ -329,7 +329,7 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
             </span>
           </div>
 
-          <div className="text-[11px] text-[#EDE383] font-medium flex items-center gap-2 bg-[#273a06] px-2.5 py-1 rounded-lg border border-[#8DA432]/30">
+          <div className="text-[11px] text-[#EDE383] font-medium flex items-center gap-2 bg-[#161616] px-2.5 py-1 rounded-lg border border-[#8DA432]/30">
             <span className="text-[#FFFCE9] font-bold">💧 {humedadSuelo.toFixed(0)}%</span>
             <span className="text-[#8DA432]">·</span>
             <span className="text-[#EDE383] font-semibold">🌡️ {tempSuelo.toFixed(1)}°C</span>
@@ -430,7 +430,7 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
 
         {/* Etiqueta de la Base */}
         <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
-          <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[#8DA432]/40 shadow-lg whitespace-nowrap">
+          <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[#8DA432]/40 shadow-lg whitespace-nowrap">
             Estación Dron: {enBase ? '🟢 Objeto detectado' : '⚪ Libre'}
           </div>
         </Html>
@@ -562,7 +562,7 @@ function CisternAndPiping({ nivel: rawNivel }: { nivel: number }) {
       </mesh>
 
       <Html position={[0, 1.35, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
+        <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
           🚰 Cisterna: {nivel.toFixed(0)}%
         </div>
       </Html>
@@ -601,7 +601,7 @@ export default function TerrainScene3D({
   selectedParcelaId,
 }: TerrainScene3DProps) {
   return (
-    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#1c2a04]">
+    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#1e1e1e]">
       <Canvas
         shadows
         camera={{ position: [0, 9.8, 10.2], fov: 44 }}
@@ -670,7 +670,7 @@ export default function TerrainScene3D({
       </Canvas>
 
       {/* Leyenda fija en la esquina inferior */}
-      <div className="absolute bottom-3 left-3 bg-[#1c2a04]/92 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-[#8DA432]/40 flex items-center gap-3.5 text-[11px] text-[#FFFCE9] pointer-events-none shadow-xl">
+      <div className="absolute bottom-3 left-3 bg-[#1e1e1e]/92 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-[#8DA432]/40 flex items-center gap-3.5 text-[11px] text-[#FFFCE9] pointer-events-none shadow-xl">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm bg-[#925E06]" />
           <span>Crítico &lt;35%</span>

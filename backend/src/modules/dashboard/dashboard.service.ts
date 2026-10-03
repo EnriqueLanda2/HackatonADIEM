@@ -56,29 +56,11 @@ export class DashboardService {
       };
     });
 
-    const tanquesDashboard = tanques.map((t) => ({
-      ...t,
-      capacidad_litros: Number(t.capacidad_litros),
-      nivel_actual_porcentaje: Number(t.nivel_actual_porcentaje),
-      nivel_critico_porcentaje: Number(t.nivel_critico_porcentaje),
-      nivel_alerta_porcentaje: Number(t.nivel_alerta_porcentaje),
-    }));
-
-    const climaDashboard = forecast
-      ? {
-          ...forecast,
-          probabilidad_lluvia: Number(forecast.probabilidad_lluvia),
-          temperatura_exterior: Number(forecast.temperatura_exterior),
-          humedad_relativa_exterior: Number(forecast.humedad_relativa_exterior),
-          velocidad_viento: forecast.velocidad_viento ? Number(forecast.velocidad_viento) : 12.0,
-        }
-      : null;
-
     return {
       parcelas: parcelasDashboard,
-      tanques: tanquesDashboard,
+      tanques,
       alertas_activas: alertas,
-      clima: climaDashboard,
+      clima: forecast,
       eventos_recientes: recentEvents,
       estadisticas: {
         total_parcelas: parcelas.length,
