@@ -150,12 +150,36 @@ export interface Alerta {
 }
 
 // ---- Clima ----
+export interface PronosticoClimaHora {
+  hora: string;
+  temperatura: number;
+  probabilidad_lluvia: number;
+  icono: string;
+  condicion: string;
+}
+
+export interface PronosticoClimaDia {
+  dia: string;
+  temp_min: number;
+  temp_max: number;
+  probabilidad_lluvia: number;
+  icono: string;
+}
+
 export interface PronosticoClima {
   pronostico_lluvia_12h: boolean;
   probabilidad_lluvia: number;
   temperatura_exterior: number;
+  temperatura_max?: number;
+  temperatura_min?: number;
+  condicion_texto?: string;
   humedad_relativa_exterior: number;
   velocidad_viento: number;
+  direccion_viento?: string;
+  indice_uv?: number;
+  sensacion_termica?: number;
+  pronostico_por_hora?: PronosticoClimaHora[];
+  pronostico_dias?: PronosticoClimaDia[];
   fuente_api: string;
   consultado_at: string;
 }
@@ -175,6 +199,7 @@ export interface ParcelaDashboard {
   humedad_suelo: number;
   temperatura: number;
   humedad_ambiental: number;
+  ph_suelo?: number;
   valvula_estado: EstadoValvula;
   valvula_modo: ModoOperacion;
   cultivo: Cultivo;
@@ -198,6 +223,7 @@ export interface DatosSimulacion {
   nivel_tanque: number;
   temperatura: number;
   humedad_ambiental: number;
+  ph_suelo?: number;
   valvula_cana: boolean;
   valvula_tomate: boolean;
   valvula_arroz: boolean;
