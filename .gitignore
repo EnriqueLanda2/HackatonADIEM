@@ -35,3 +35,12 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Claves VAPID de push notifications (generadas por el backend)
+.vapid-keys.json
+
+# Secreto para firmar las sesiones (generado por el backend)
+.auth-secret
+*.log
+*.bak
+fix-api-methods*.js

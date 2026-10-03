@@ -19,7 +19,7 @@ export const CULTIVOS_MORELOS: Record<string, Cultivo> = {
     hr_alerta_hongos: 85,
     frecuencia_riego_horas: 48,
     duracion_riego_minutos: 60,
-    tipo_riego: 'aspersion',
+    tipo_riego: 'aspersion_presurizada',
     descripcion: 'Cultivo estratégico del Estado de Morelos. Requiere riego abundante pero controlado.',
     icono: '🌾',
   },
@@ -104,7 +104,7 @@ export const CULTIVOS_MORELOS: Record<string, Cultivo> = {
     hr_alerta_hongos: 85,
     frecuencia_riego_horas: 48,
     duracion_riego_minutos: 40,
-    tipo_riego: 'aspersion',
+    tipo_riego: 'aspersion_presurizada',
     descripcion: 'Cultivo base de la agricultura mexicana.',
     icono: '🌽',
   },
@@ -121,7 +121,7 @@ export const CULTIVOS_MORELOS: Record<string, Cultivo> = {
     hr_alerta_hongos: 85,
     frecuencia_riego_horas: 72,
     duracion_riego_minutos: 35,
-    tipo_riego: 'aspersion',
+    tipo_riego: 'aspersion_presurizada',
     descripcion: 'Altamente tolerante a la sequía.',
     icono: '🌾',
   },
@@ -189,7 +189,7 @@ export function getEstadoPH(ph: number): {
       estado: 'acido',
       label: 'Ácido',
       color: '#925E06',
-      badgeClass: 'bg-[#925E06]/40 text-[#EDE383] border-[#925E06]',
+      badgeClass: 'bg-goldenbrown/40 text-flax border-goldenbrown',
       descripcion: 'Suelo ácido (< 6.0 pH). Monitorear disponibilidad de nutrientes.',
     };
   } else if (ph <= 7.5) {
@@ -197,7 +197,7 @@ export function getEstadoPH(ph: number): {
       estado: 'optimo',
       label: 'Óptimo',
       color: '#8DA432',
-      badgeClass: 'bg-[#8DA432]/30 text-[#FFFCE9] border-[#8DA432]',
+      badgeClass: 'bg-applegreen/30 text-creme border-applegreen',
       descripcion: 'pH óptimo (6.0 - 7.5) para asimilación de minerales.',
     };
   } else {
@@ -205,7 +205,7 @@ export function getEstadoPH(ph: number): {
       estado: 'alcalino',
       label: 'Alcalino',
       color: '#8DA432',
-      badgeClass: 'bg-[#365004]/60 text-[#EDE383] border-[#8DA432]',
+      badgeClass: 'bg-darkgreen/60 text-flax border-applegreen',
       descripcion: 'Suelo alcalino (> 7.5 pH). Posible bloqueo de fósforo/hierro.',
     };
   }

@@ -27,7 +27,7 @@ CREATE TABLE cultivos (
     -- Riego
     frecuencia_riego_horas INTEGER DEFAULT 24,
     duracion_riego_minutos INTEGER DEFAULT 30,
-    tipo_riego VARCHAR(50) DEFAULT 'goteo',  -- goteo, aspersion, inundacion, microaspersion
+    tipo_riego VARCHAR(50) DEFAULT 'goteo',  -- goteo, aspersion_presurizada, microaspersion
     -- Metadata
     descripcion TEXT,
     icono VARCHAR(50),
@@ -56,6 +56,8 @@ CREATE TABLE parcelas (
     -- Estado
     activa BOOLEAN DEFAULT true,
     modo_operacion VARCHAR(20) DEFAULT 'automatico',  -- automatico, manual
+    metodo_riego VARCHAR(20),  -- sistema en uso: goteo, microaspersion, aspersion_presurizada o ambos (NULL = el recomendado por el cultivo)
+    instalaciones_riego JSONB,  -- tuberías instaladas por el técnico: [{estado, metodo, metros_tuberia, emisores, ...}]
     -- Metadata
     propietario VARCHAR(200),
     notas TEXT,
@@ -235,13 +237,13 @@ CREATE TABLE configuracion_clima (
 -- DATOS INICIALES: Perfiles de cultivos de Morelos
 -- =============================================================================
 INSERT INTO cultivos (nombre, nombre_cientifico, humedad_minima, humedad_optima, humedad_maxima, temp_minima, temp_optima, temp_maxima, hr_alerta_hongos, frecuencia_riego_horas, duracion_riego_minutos, tipo_riego, descripcion, icono) VALUES
-('Caña de Azúcar', 'Saccharum officinarum', 55, 75, 90, 20, 28, 35, 85, 48, 60, 'aspersion', 'Cultivo estratégico del Estado de Morelos. Requiere riego abundante pero controlado. Tolerante a altas temperaturas.', '🌾'),
+('Caña de Azúcar', 'Saccharum officinarum', 55, 75, 90, 20, 28, 35, 85, 48, 60, 'aspersion_presurizada', 'Cultivo estratégico del Estado de Morelos. Requiere riego abundante pero controlado. Tolerante a altas temperaturas.', '🌾'),
 ('Nopal', 'Opuntia ficus-indica', 15, 30, 45, 15, 25, 40, 90, 168, 15, 'goteo', 'Cultivo endémico. Requiere estrés hídrico controlado para óptima producción. Muy resistente a la sequía.', '🌵'),
 ('Aguacate', 'Persea americana', 50, 65, 80, 15, 22, 30, 75, 72, 45, 'microaspersion', 'Sensible a exceso de humedad en raíz (Phytophthora). Requiere buen drenaje y humedad ambiental controlada.', '🥑'),
 ('Tomate Rojo', 'Solanum lycopersicum', 45, 60, 75, 18, 24, 32, 80, 24, 30, 'goteo', 'Sensible a hongos (tizón tardío) con humedad ambiental alta. Requiere riego frecuente y preciso.', '🍅'),
 ('Tomate Verde', 'Physalis philadelphica', 40, 55, 70, 16, 22, 30, 80, 24, 25, 'goteo', 'Tomatillo. Similar al tomate rojo pero ligeramente más tolerante a la sequía. Nativo de México.', '🫒'),
-('Maíz', 'Zea mays', 45, 65, 80, 18, 26, 35, 85, 48, 40, 'aspersion', 'Cultivo base de la agricultura mexicana. Requiere riego regular especialmente en etapa de floración.', '🌽'),
-('Sorgo', 'Sorghum bicolor', 35, 50, 70, 20, 30, 38, 85, 72, 35, 'aspersion', 'Cereal altamente tolerante a la sequía. Ideal para zonas con menor disponibilidad de agua.', '🌾'),
+('Maíz', 'Zea mays', 45, 65, 80, 18, 26, 35, 85, 48, 40, 'aspersion_presurizada', 'Cultivo base de la agricultura mexicana. Requiere riego regular especialmente en etapa de floración.', '🌽'),
+('Sorgo', 'Sorghum bicolor', 35, 50, 70, 20, 30, 38, 85, 72, 35, 'aspersion_presurizada', 'Cereal altamente tolerante a la sequía. Ideal para zonas con menor disponibilidad de agua.', '🌾'),
 ('Arroz', 'Oryza sativa', 80, 95, 100, 20, 28, 35, 90, 24, 120, 'inundacion', 'Requiere inundación controlada del terreno. Mayor consumo de agua de todos los cultivos del catálogo.', '🍚');
 
 -- =============================================================================
@@ -278,3 +280,18 @@ INSERT INTO sensores (parcela_id, tipo, modelo, unidad, ultimo_valor, ultima_lec
 ((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'humedad_ambiental', 'DHT22', '%', 60.0, NOW()),
 ((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'temperatura', 'DHT22', '°C', 28.0, NOW()),
 ((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'ph_suelo', 'Sonda pH E-201-C', 'pH', 6.5, NOW());
+
+-- =============================================================================
+-- TABLA: usuarios
+-- Sesiones por rol: el técnico configura parcelas e instalaciones; el productor opera.
+-- (El backend la crea al arrancar y agrega las cuentas de demostración si está vacía.)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS usuarios (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nombre VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    rol VARCHAR(20) NOT NULL CHECK (rol IN ('tecnico', 'productor')),
+    activo BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

@@ -1,130 +1,169 @@
 'use client';
 
 import { useState } from 'react';
-import { DronRiego } from '@/types';
+import { DronRiego, ParcelaDashboard, TipoMisionDron } from '@/types';
+import { registrarBitacora } from '@/lib/bitacora';
 import { api } from '@/lib/api';
 
 interface DroneControlPanelProps {
+  parcelas?: ParcelaDashboard[];
   dron: DronRiego;
   modoGlobal: 'automatico' | 'manual';
   onRefresh: () => void;
 }
 
+const MISION_INFO: Record<TipoMisionDron, { icon: string; label: string; verbo: string; descripcion: string }> = {
+  riego: {
+    icon: '💧',
+    label: 'Riego',
+    verbo: 'Regar',
+    descripcion: 'Agua de la cisterna hasta llevar el suelo a su humedad óptima.',
+  },
+  fumigacion: {
+    icon: '🧪',
+    label: 'Fumigación',
+    verbo: 'Fumigar',
+    descripcion: 'Biopreparado orgánico (5%) diluido en agua: 10 L de caldo por hectárea.',
+  },
+  escaneo: {
+    icon: '🔍',
+    label: 'Escaneo',
+    verbo: 'Escanear',
+    descripcion: 'La cámara del dron recorre el cultivo y la IA reporta si hay plaga (sí/no) con su confianza. No gasta agua.',
+  },
+};
+
 export default function DroneControlPanel({
+  parcelas = [],
   dron,
   modoGlobal,
   onRefresh,
 }: DroneControlPanelProps) {
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [targetParcela, setTargetParcela] = useState<string>('');
+  const [tipoMision, setTipoMision] = useState<TipoMisionDron>('riego');
 
   const showMsg = (msg: string) => {
     setFeedbackMsg(msg);
-    setTimeout(() => setFeedbackMsg(null), 4000);
+    setTimeout(() => setFeedbackMsg(null), 5000);
   };
 
-  // Toggle de presencia en base
-  const handleTogglePresencia = () => {
-    const presente = api.toggleDronPresencia();
-    showMsg(presente ? 'Sensor detectó al Dron en la plataforma de recarga.' : 'Sensor: Plataforma de recarga libre (sin objeto).');
+  const manual = modoGlobal === 'manual';
+  const enMision = dron.mision_activa;
+  const dronNivel = Number(dron.nivel_agua_porcentaje ?? 0);
+  const dronCapacidad = Number(dron.capacidad_litros ?? 40);
+  const dronLitros = (dronCapacidad * dronNivel) / 100;
+  const bioNivel = Number(dron.nivel_biopreparado_porcentaje ?? 0);
+  const bioCapacidad = Number(dron.capacidad_biopreparado_litros ?? 5);
+  const sinAgua = dronNivel <= 15;
+
+  // Solo parcelas activas con cultivo: el dron no aplica sobre terreno en descanso.
+  const parcelasOperables = parcelas.filter((p) => p.parcela.activa && p.tiene_cultivo && p.cultivo);
+  const seleccionada = parcelasOperables.find((p) => p.parcela.id === targetParcela);
+  const esEscaneo = tipoMision === 'escaneo';
+  const dosisEstimada = seleccionada && !esEscaneo ? api.calcularDosisDron(seleccionada, tipoMision) : 0;
+  const misionEsEscaneo = dron.tipo_mision === 'escaneo';
+  const avance = Number(dron.avance_porcentaje ?? 0);
+
+  const objetivoMision = parcelas.find((p) => p.parcela.id === dron.objetivo_parcela_id);
+  const misionActual = dron.tipo_mision ? MISION_INFO[dron.tipo_mision] : null;
+  const aplicados = Number(dron.litros_aplicados ?? 0);
+  const objetivoLitros = Number(dron.litros_objetivo ?? 0);
+  const progreso = objetivoLitros > 0 ? Math.min(100, (aplicados / objetivoLitros) * 100) : 0;
+  const ultima = dron.ultima_mision;
+
+  const handleToggleModoGlobal = () => {
+    const nuevo = api.toggleModoGlobalRiego();
+    registrarBitacora({ categoria: 'riego', accion: `Modo de riego cambiado a ${nuevo === 'automatico' ? 'automático' : 'manual'}`, tipo_riego: 'Tuberías (todas las parcelas)' });
+    showMsg(`Sistema configurado en modo ${nuevo === 'automatico' ? 'AUTOMÁTICO' : 'MANUAL'}.`);
     onRefresh();
   };
 
-  // Toggle llave de paso de agua
+  const handleTogglePresencia = () => {
+    const presente = api.toggleDronPresencia();
+    showMsg(presente ? 'Sensor detectó al dron en la plataforma de recarga.' : 'Plataforma de recarga libre.');
+    onRefresh();
+  };
+
   const handleToggleLlave = () => {
-    const res = api.toggleDronLlavePaso();
+    showMsg(api.toggleDronLlavePaso().message);
+    onRefresh();
+  };
+
+  const handleMision = () => {
+    const res = enMision ? api.detenerDronEmergencia() : api.despacharDron(seleccionada, tipoMision);
+    registrarBitacora({
+      categoria: 'dron',
+      accion: enMision ? 'Misión del dron detenida' : `Misión del dron: ${MISION_INFO[tipoMision].label}`,
+      detalle: res.message,
+      tipo_riego: tipoMision === 'riego' ? 'Dron (riego de emergencia)' : null,
+      parcela: seleccionada?.parcela.nombre ?? null,
+    });
     showMsg(res.message);
     onRefresh();
   };
 
-  // Despachar misión de emergencia
-  const handleDespacharDron = () => {
-    if (dron?.mision_activa || dron?.estado === 'regando') {
-      const res = api.detenerDronEmergencia();
-      showMsg(res.message);
-    } else {
-      const res = api.despacharDronEmergencia();
-      showMsg(res.message);
-    }
-    onRefresh();
-  };
-
-  // Llenar manualmente
   const handleLlenarManual = () => {
-    api.llenarDronManual();
-    showMsg('Tanque del dron llenado manualmente al 100% (40 L).');
+    showMsg(api.llenarDronManual().message);
     onRefresh();
   };
 
-  // Toggle modo automático / manual
-  const handleToggleModoGlobal = () => {
-    const nuevo = api.toggleModoGlobalRiego();
-    showMsg(`Sistema de riego configurado en Modo ${nuevo.toUpperCase()}.`);
+  const handleRecargarBio = () => {
+    showMsg(api.recargarBiopreparado().message);
     onRefresh();
   };
 
-  // Riego manual inmediato de todas las parcelas
   const handleRiegoManualTodo = () => {
     api.regarTodoManual();
-    showMsg('Válvulas abiertas: Regando todo el sembradío simultáneamente.');
+    registrarBitacora({ categoria: 'riego', accion: 'Riego manual: regar todo el sembradío', tipo_riego: 'Tuberías (todas las parcelas)' });
+    showMsg('Válvulas abiertas: regando todo el sembradío.');
     onRefresh();
   };
 
   const handleDetenerTodo = () => {
     api.detenerRiegoTodo();
-    showMsg('Válvulas cerradas: Riego detenido en todo el sembradío.');
+    registrarBitacora({ categoria: 'riego', accion: 'Riego manual: detener todo el riego', tipo_riego: 'Tuberías (todas las parcelas)' });
+    showMsg('Válvulas cerradas: riego detenido en todo el sembradío.');
     onRefresh();
   };
 
-  const dronNivel = Number(dron?.nivel_agua_porcentaje ?? 0);
-  const dronCapacidad = Number(dron?.capacidad_litros ?? 40);
-  const sinAgua = dronNivel <= 15;
-  const enMision = dron?.mision_activa || dron?.estado === 'regando';
+  const puedeDespachar =
+    manual && !enMision && Boolean(seleccionada) && (esEscaneo || (!sinAgua && !(tipoMision === 'fumigacion' && bioNivel <= 10)));
 
   return (
-    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col gap-4">
-      {/* ========================================================================= */}
-      {/* CABECERA: SISTEMA DE RIEGO POR DRON & MODO MAESTRO                       */}
-      {/* ========================================================================= */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#8DA432]/25 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#365004] border border-[#8DA432]/50 flex items-center justify-center text-2xl shadow-inner">
-            🚁
-          </div>
+    <div className="flex flex-col gap-4 rounded-2xl border border-applegreen/30 bg-card p-5 shadow-lg shadow-black/20">
+      {/* Cabecera y modo maestro */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-applegreen/20 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-applegreen/40 bg-darkgreen text-2xl">🚁</div>
           <div>
-            <h3 className="text-[#FFFCE9] font-bold text-base tracking-tight flex items-center gap-2">
-              <span>Riego por Dron de Emergencia</span>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-[#925E06]/40 text-[#FFFCE9] border border-[#925E06]">
-                Alerta de Sequía: 3 días sin lluvia
+            <h3 className="flex flex-wrap items-center gap-2 text-base font-bold tracking-tight text-creme">
+              Dron de riego, fumigación y escaneo
+              <span
+                className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${
+                  dron.requiere_riego_emergencia ? 'border-goldenbrown bg-goldenbrown/40 text-creme' : 'border-applegreen/50 bg-applegreen/15 text-applegreen'
+                }`}
+              >
+                {dron.requiere_riego_emergencia ? `Sequía: ${dron.dias_sin_lluvia} días sin lluvia` : 'Clima estable'}
               </span>
             </h3>
-            <p className="text-[#EDE383] text-xs font-medium">
-              {dron.nombre} · Cobertura aérea de 15.5 ha en Morelos
-            </p>
+            <p className="text-xs text-flax/80">{dron.nombre} · Batería 🔋 {dron.bateria_porcentaje}%</p>
           </div>
         </div>
 
-        {/* Interruptor Modo Automático vs Manual */}
-        <div className="flex items-center gap-1.5 bg-[#1e1e1e] p-1.5 rounded-xl border border-[#8DA432]/30">
+        <div className="flex items-center gap-1.5 rounded-xl border border-applegreen/25 bg-panel p-1.5">
           <button
-            onClick={() => {
-              if (modoGlobal !== 'automatico') handleToggleModoGlobal();
-            }}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              modoGlobal === 'automatico'
-                ? 'bg-[#8DA432] text-[#FFFCE9] shadow-md shadow-black/20'
-                : 'text-[#EDE383]/70 hover:text-[#FFFCE9]'
+            onClick={() => modoGlobal !== 'automatico' && handleToggleModoGlobal()}
+            className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all ${
+              modoGlobal === 'automatico' ? 'bg-applegreen text-ink shadow-md' : 'text-flax/70 hover:text-creme'
             }`}
           >
-            ⚡ Automático (IA + Sensores)
+            ⚡ Automático
           </button>
           <button
-            onClick={() => {
-              if (modoGlobal !== 'manual') handleToggleModoGlobal();
-            }}
-            className={`text-xs px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              modoGlobal === 'manual'
-                ? 'bg-[#925E06] text-[#FFFCE9] shadow-md shadow-black/20'
-                : 'text-[#EDE383]/70 hover:text-[#FFFCE9]'
+            onClick={() => modoGlobal !== 'manual' && handleToggleModoGlobal()}
+            className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all ${
+              manual ? 'bg-goldenbrown text-creme shadow-md' : 'text-flax/70 hover:text-creme'
             }`}
           >
             ✋ Manual
@@ -132,157 +171,255 @@ export default function DroneControlPanel({
         </div>
       </div>
 
-      {/* Banner de feedback interactivo */}
       {feedbackMsg && (
-        <div className="bg-[#365004] border border-[#8DA432] text-[#FFFCE9] text-xs px-3.5 py-2.5 rounded-xl animate-fade-in flex items-center justify-between shadow-md">
+        <div className="flex animate-fade-in items-center justify-between rounded-xl border border-applegreen bg-darkgreen px-3.5 py-2.5 text-xs text-creme shadow-md">
           <span className="font-medium">ℹ️ {feedbackMsg}</span>
-          <button onClick={() => setFeedbackMsg(null)} className="text-[#EDE383] font-bold ml-2 hover:text-[#FFFCE9]">
-            ✕
-          </button>
+          <button onClick={() => setFeedbackMsg(null)} className="ml-2 font-bold text-flax hover:text-creme">✕</button>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* CUERPO PRINCIPAL: ESTADO DEL DRON Y ESTACIÓN DE RECARGA CON SENSOR       */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 1. Tanque de Agua del Dron */}
-        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-center text-xs text-[#EDE383] mb-1">
-              <span className="font-semibold">💧 Tanque de Agua del Dron</span>
-              <span className="text-[10px] text-[#EDE383]/70 font-mono">{((dronCapacidad * dronNivel) / 100).toFixed(0)} / {dronCapacidad} L</span>
+      {/* Misión en curso */}
+      {enMision && misionActual && (
+        <div className="rounded-xl border border-flax/40 bg-darkgreen/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-bold text-creme">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-flax" />
+              {misionActual.icon} {misionActual.label} en curso · {objetivoMision?.parcela.nombre ?? 'Parcela objetivo'}
             </div>
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-3xl font-extrabold text-[#FFFCE9] tracking-tight">
-                {dronNivel.toFixed(0)}%
-              </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                sinAgua 
-                  ? 'bg-[#925E06]/50 text-[#FFFCE9] border-[#925E06]' 
-                  : 'bg-[#8DA432]/30 text-[#FFFCE9] border-[#8DA432]'
-              }`}>
-                {sinAgua ? 'Vacío / Requiere Carga' : 'Listo para Aspersión'}
-              </span>
-            </div>
+            <span className="font-mono text-xs text-flax">
+              {misionEsEscaneo ? `${avance.toFixed(0)}% recorrido` : `${aplicados.toFixed(1)} / ${objetivoLitros.toFixed(1)} L`}
+            </span>
+          </div>
+          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-field">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${misionEsEscaneo ? 'bg-applegreen' : 'bg-flax'}`}
+              style={{ width: `${misionEsEscaneo ? avance : progreso}%` }}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-flax/75">
+            {misionEsEscaneo
+              ? 'La cámara captura el follaje; al terminar, la IA reporta si hay plaga y el resultado se notifica.'
+              : objetivoLitros > dronLitros + aplicados
+              ? `El tanque no alcanza para toda la dosis: se aplicará ~${(dronLitros + aplicados).toFixed(1)} L.`
+              : `Restan ${(objetivoLitros - aplicados).toFixed(1)} L. El dron vuelve a la base al terminar.`}
+          </p>
+        </div>
+      )}
 
-            <div className="w-full bg-[#2a2a2a] h-2.5 rounded-full overflow-hidden border border-[#8DA432]/30">
-              <div
-                className={`h-full transition-all duration-700 ${
-                  sinAgua ? 'bg-[#925E06]' : 'bg-[#8DA432]'
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* Tanques del dron */}
+        <div className="flex flex-col gap-3 rounded-xl border border-applegreen/20 bg-panel p-3.5">
+          <div>
+            <div className="mb-1 flex items-center justify-between text-xs text-flax">
+              <span className="font-semibold">💧 Tanque de agua</span>
+              <span className="font-mono text-[10px] text-flax/70">{dronLitros.toFixed(1)} / {dronCapacidad} L</span>
+            </div>
+            <div className="mb-2 flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold tracking-tight text-creme">{dronNivel.toFixed(0)}%</span>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                  sinAgua ? 'border-goldenbrown bg-goldenbrown/50 text-creme' : 'border-applegreen/60 bg-applegreen/15 text-applegreen'
                 }`}
-                style={{ width: `${dron.nivel_agua_porcentaje}%` }}
-              />
+              >
+                {sinAgua ? 'Requiere carga' : 'Listo'}
+              </span>
+            </div>
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-field">
+              <div className={`h-full transition-all duration-700 ${sinAgua ? 'bg-goldenbrown' : 'bg-applegreen'}`} style={{ width: `${dronNivel}%` }} />
             </div>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-[#8DA432]/20 flex justify-between items-center text-[11px]">
-            <span className="text-[#EDE383]/70">Batería de vuelo:</span>
-            <span className="text-[#FFFCE9] font-bold font-mono">🔋 {dron.bateria_porcentaje}%</span>
+          <div className="border-t border-applegreen/15 pt-3">
+            <div className="mb-1 flex items-center justify-between text-xs text-flax">
+              <span className="font-semibold">🧪 Biopreparado</span>
+              <span className="font-mono text-[10px] text-flax/70">
+                {((bioCapacidad * bioNivel) / 100).toFixed(2)} / {bioCapacidad} L
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-field">
+              <div className={`h-full transition-all duration-700 ${bioNivel <= 20 ? 'bg-goldenbrown' : 'bg-flax'}`} style={{ width: `${bioNivel}%` }} />
+            </div>
+          </div>
+
+          <div className="mt-auto flex gap-2">
+            <button
+              onClick={handleLlenarManual}
+              disabled={!manual || !dron.en_posicion_recarga || enMision}
+              className="flex-1 cursor-pointer rounded-lg border border-applegreen/30 bg-darkgreen/60 px-2 py-1.5 text-[10px] font-semibold text-flax transition-colors hover:bg-applegreen hover:text-ink disabled:cursor-not-allowed disabled:bg-ink disabled:text-flax/30 disabled:hover:bg-ink"
+            >
+              Llenar agua
+            </button>
+            <button
+              onClick={handleRecargarBio}
+              disabled={!manual || !dron.en_posicion_recarga || enMision}
+              className="flex-1 cursor-pointer rounded-lg border border-applegreen/30 bg-darkgreen/60 px-2 py-1.5 text-[10px] font-semibold text-flax transition-colors hover:bg-applegreen hover:text-ink disabled:cursor-not-allowed disabled:bg-ink disabled:text-flax/30 disabled:hover:bg-ink"
+            >
+              Recargar bio
+            </button>
           </div>
         </div>
 
-        {/* 2. Sensor de Presencia en Base y Llave de Paso */}
-        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
+        {/* Estación de recarga */}
+        <div className="flex flex-col justify-between rounded-xl border border-applegreen/20 bg-panel p-3.5">
           <div>
-            <div className="text-xs text-[#EDE383] mb-2 flex items-center justify-between font-semibold">
-              <span>📡 Sensor de Presencia (Base)</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border ${
-                dron.en_posicion_recarga
-                  ? 'bg-[#8DA432]/30 text-[#FFFCE9] border-[#8DA432]'
-                  : 'bg-[#925E06]/40 text-[#EDE383] border-[#925E06]'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${dron.en_posicion_recarga ? 'bg-[#8DA432] animate-pulse' : 'bg-[#925E06]'}`} />
-                {dron.en_posicion_recarga ? 'Objeto Detectado' : 'Sin Objeto'}
+            <div className="mb-2 flex items-center justify-between text-xs font-semibold text-flax">
+              <span>📡 Estación de recarga</span>
+              <span
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                  dron.en_posicion_recarga ? 'border-applegreen bg-applegreen/20 text-creme' : 'border-goldenbrown bg-goldenbrown/40 text-flax'
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${dron.en_posicion_recarga ? 'animate-pulse bg-applegreen' : 'bg-goldenbrown'}`} />
+                {dron.en_posicion_recarga ? 'Dron acoplado' : 'Sin dron'}
               </span>
             </div>
-
-            <p className="text-[11px] text-[#EDE383]/80 leading-relaxed mb-3">
+            <p className="mb-3 text-[11px] leading-relaxed text-flax/80">
               {dron.en_posicion_recarga
-                ? 'El dron se encuentra acoplado en la plataforma de recarga. Válvula de suministro habilitada.'
-                : '⚠️ No se detecta ningún objeto en la plataforma. Llave de paso bloqueada por seguridad.'}
+                ? dron.llave_paso_recarga_abierta
+                  ? 'Llave abierta: el agua pasa de la cisterna al dron.'
+                  : 'El sensor detecta al dron. La llave de suministro está habilitada.'
+                : 'El dron no está en la plataforma. La llave de paso queda bloqueada por seguridad.'}
             </p>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handleTogglePresencia}
-              className="flex-1 text-[11px] py-1.5 px-2 rounded-xl border border-[#8DA432]/40 bg-[#365004]/70 hover:bg-[#8DA432] text-[#FFFCE9] transition-all font-bold cursor-pointer"
+              disabled={!manual || enMision}
+              className="flex-1 cursor-pointer rounded-lg border border-applegreen/40 bg-darkgreen/70 px-2 py-1.5 text-[11px] font-bold text-creme transition-all hover:bg-applegreen hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-darkgreen/70 disabled:hover:text-creme"
             >
-              {dron.en_posicion_recarga ? 'Retirar Dron' : 'Colocar Dron'}
+              {dron.en_posicion_recarga ? 'Retirar dron' : 'Colocar dron'}
             </button>
             <button
               onClick={handleToggleLlave}
-              disabled={!dron.en_posicion_recarga}
-              className={`flex-1 text-[11px] py-1.5 px-2 rounded-xl border font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              disabled={!dron.en_posicion_recarga || !manual}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-all ${
                 !dron.en_posicion_recarga
-                  ? 'bg-[#0f110c] border-[#8DA432]/20 text-[#EDE383]/40 cursor-not-allowed'
+                  ? 'cursor-not-allowed border-applegreen/15 bg-ink text-flax/40'
                   : dron.llave_paso_recarga_abierta
-                  ? 'bg-[#8DA432] text-[#FFFCE9] border-[#FFFCE9]/50 shadow-md animate-pulse'
-                  : 'bg-[#365004] text-[#FFFCE9] border-[#8DA432] hover:bg-[#8DA432]'
+                  ? 'animate-pulse border-creme/50 bg-applegreen text-ink'
+                  : 'cursor-pointer border-applegreen bg-darkgreen text-creme hover:bg-applegreen hover:text-ink disabled:cursor-not-allowed disabled:opacity-50'
               }`}
             >
-              {!dron.en_posicion_recarga ? (
-                <>🔒 Bloqueada</>
-              ) : dron.llave_paso_recarga_abierta ? (
-                <>🚰 Llenando...</>
-              ) : (
-                <>Abrir Llave</>
-              )}
+              {!dron.en_posicion_recarga ? '🔒 Bloqueada' : dron.llave_paso_recarga_abierta ? '🚰 Llenando…' : 'Abrir llave'}
             </button>
           </div>
         </div>
 
-        {/* 3. Acciones de Riego de Emergencia */}
-        <div className="bg-[#1e1e1e] p-3.5 rounded-xl border border-[#8DA432]/25 flex flex-col justify-between">
-          <div>
-            <div className="text-xs text-[#EDE383] mb-1.5 font-bold">
-              <span>🚨 Protocolo de Emergencia</span>
-            </div>
-            <p className="text-[11px] text-[#EDE383]/80 leading-relaxed mb-2">
-              Activación para regar todo el sembradío ante periodos prolongados de sequía (&gt;= 3 días sin lluvia).
-            </p>
-          </div>
+        {/* Planificador de misión */}
+        <div className="flex flex-col gap-2.5 rounded-xl border border-applegreen/20 bg-panel p-3.5">
+          <div className="text-xs font-bold text-flax">🎯 Misión</div>
 
-          <div className="space-y-2">
-            <button
-              onClick={handleDespacharDron}
-              className={`w-full py-2.5 px-3 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                enMision
-                  ? 'bg-[#925E06] text-[#FFFCE9] border border-[#FFFCE9]/30 hover:bg-[#925E06]/80 animate-pulse'
-                  : sinAgua
-                  ? 'bg-[#925E06]/50 text-[#FFFCE9] border border-[#FFFCE9]/30 hover:bg-[#925E06]/80'
-                  : 'bg-[#8DA432] hover:bg-[#365004] text-[#FFFCE9] border border-[#EDE383]/40'
-              }`}
-            >
-              {enMision ? (
-                <>🛑 Detener Dron en Vuelo</>
-              ) : sinAgua ? (
-                <>⚠️ Dron Vacío (Llenar para Activar)</>
-              ) : (
-                <>🚀 Activar Riego por Dron</>
-              )}
-            </button>
-
-            <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-1 rounded-lg border border-applegreen/20 bg-ink/60 p-1">
+            {(Object.keys(MISION_INFO) as TipoMisionDron[]).map((tipo) => (
               <button
-                onClick={handleLlenarManual}
-                className="flex-1 text-[10px] py-1.5 px-2 rounded-xl border border-[#8DA432]/30 bg-[#365004]/60 text-[#EDE383] hover:text-[#FFFCE9] hover:bg-[#8DA432] transition-colors font-medium cursor-pointer"
+                key={tipo}
+                onClick={() => setTipoMision(tipo)}
+                disabled={!manual || enMision}
+                className={`rounded-md px-1 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed ${
+                  tipoMision === tipo ? 'bg-applegreen text-ink' : 'cursor-pointer text-flax/70 hover:text-creme'
+                }`}
               >
-                Llenado manual
+                {MISION_INFO[tipo].icon} {MISION_INFO[tipo].label}
               </button>
-              {modoGlobal === 'manual' && (
-                <button
-                  onClick={handleRiegoManualTodo}
-                  className="flex-1 text-[10px] py-1.5 px-2 rounded-xl bg-[#365004] text-[#FFFCE9] border border-[#8DA432] hover:bg-[#8DA432] font-bold transition-colors cursor-pointer"
-                >
-                  Regar todo manual
-                </button>
-              )}
-            </div>
+            ))}
           </div>
+
+          <select
+            value={targetParcela}
+            onChange={(e) => setTargetParcela(e.target.value)}
+            disabled={enMision || !manual}
+            className="w-full rounded-lg border border-applegreen/30 bg-card px-2 py-2 text-[11px] text-creme outline-none focus:border-applegreen disabled:opacity-50"
+          >
+            <option value="">📍 Selecciona una parcela</option>
+            {parcelasOperables.map((p) => (
+              <option key={p.parcela.id} value={p.parcela.id}>
+                {p.parcela.nombre} · {Number(p.humedad_suelo).toFixed(0)}%
+              </option>
+            ))}
+          </select>
+
+          <p className="text-[10px] leading-relaxed text-flax/70">
+            {!manual
+              ? 'En automático el dron riega parcelas bajo su humedad mínima, escanea las de mayor riesgo de plaga según la IA y fumiga solo las plagas confirmadas.'
+              : seleccionada && esEscaneo
+              ? `Duración estimada: ~${Math.max(20, Math.round(20 * Number(seleccionada.parcela.superficie_hectareas || 1)))} s. Riesgo IA actual: ${Math.round((seleccionada.riesgo_plaga?.probabilidad ?? 0) * 100)}%. ${MISION_INFO.escaneo.descripcion}`
+              : seleccionada
+              ? `Dosis estimada: ${dosisEstimada.toFixed(1)} L${dosisEstimada > dronLitros ? ` (el tanque tiene ${dronLitros.toFixed(1)} L)` : ''}. ${MISION_INFO[tipoMision].descripcion}`
+              : MISION_INFO[tipoMision].descripcion}
+          </p>
+
+          <button
+            onClick={handleMision}
+            disabled={!manual || (!enMision && !puedeDespachar)}
+            className={`mt-auto flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-extrabold shadow-md transition-all ${
+              !manual
+                ? 'cursor-not-allowed border border-applegreen/15 bg-ink text-flax/50'
+                : enMision
+                ? 'cursor-pointer border border-creme/30 bg-goldenbrown text-creme hover:bg-goldenbrown/80'
+                : puedeDespachar
+                ? 'cursor-pointer border border-flax/40 bg-applegreen text-ink hover:bg-darkgreen hover:text-creme'
+                : 'cursor-not-allowed border border-applegreen/15 bg-field text-flax/50'
+            }`}
+          >
+            {!manual
+              ? '⚙️ Control automático activo'
+              : enMision
+              ? '🛑 Detener y regresar a base'
+              : sinAgua && !esEscaneo
+              ? '⚠️ Recarga el tanque'
+              : tipoMision === 'fumigacion' && bioNivel <= 10
+              ? '⚠️ Recarga el biopreparado'
+              : `🚀 ${MISION_INFO[tipoMision].verbo} parcela`}
+          </button>
         </div>
       </div>
+
+      {/* Válvulas del sembradío (riego por tubería, independiente del dron) */}
+      {manual && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-applegreen/15 bg-panel px-3.5 py-2.5">
+          <span className="text-[11px] font-semibold text-flax">🚿 Electroválvulas del sembradío</span>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRiegoManualTodo}
+              className="cursor-pointer rounded-lg border border-applegreen bg-darkgreen px-3 py-1.5 text-[10px] font-bold text-creme transition-colors hover:bg-applegreen hover:text-ink"
+            >
+              Regar todo manual
+            </button>
+            <button
+              onClick={handleDetenerTodo}
+              className="cursor-pointer rounded-lg border border-goldenbrown bg-goldenbrown/40 px-3 py-1.5 text-[10px] font-bold text-creme transition-colors hover:bg-goldenbrown"
+            >
+              Cerrar todas
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado de la última misión */}
+      {ultima && !enMision && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-applegreen/15 bg-ink/40 px-3.5 py-2.5 text-[11px]">
+          <span className="text-flax/80">
+            Última misión: <b className="text-creme">{MISION_INFO[ultima.tipo].icon} {MISION_INFO[ultima.tipo].label}</b> en{' '}
+            <b className="text-creme">{ultima.parcela_nombre}</b> · {ultima.motivo_fin}
+          </span>
+          {ultima.escaneo ? (
+            <span
+              className={`rounded-full border px-2.5 py-0.5 font-bold ${
+                ultima.escaneo.plaga_detectada ? 'border-goldenbrown bg-goldenbrown text-creme' : 'border-applegreen/60 bg-applegreen/20 text-applegreen'
+              }`}
+            >
+              plaga_detectada: {String(ultima.escaneo.plaga_detectada)} · {Math.round(ultima.escaneo.confianza * 100)}%
+            </span>
+          ) : ultima.tipo === 'escaneo' ? (
+            <span className="font-mono font-bold text-flax">Escaneo interrumpido</span>
+          ) : (
+            <span className={`font-mono font-bold ${ultima.completada ? 'text-applegreen' : 'text-flax'}`}>
+              {ultima.litros_aplicados.toFixed(1)} / {ultima.litros_objetivo.toFixed(1)} L {ultima.completada ? '✓' : '(parcial)'}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

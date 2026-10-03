@@ -8,7 +8,7 @@ import { DashboardSummary } from '@/types';
  * Hook para obtener y actualizar datos del dashboard en tiempo real.
  * Hace polling cada `intervalMs` milisegundos (default: 3 segundos).
  */
-export function useDashboard(intervalMs = 3000) {
+export function useDashboard(intervalMs = 2000) {
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

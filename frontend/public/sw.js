@@ -1,115 +1,88 @@
 // =============================================================================
-// Service Worker - Riego Inteligente PWA
-// Estrategia: Network First con fallback a cache
+// Service Worker - agromIA PWA
+// - Push notifications de alertas (agua, riesgo, sequía, lluvia, plagas).
+// - Caché mínima: solo íconos y manifiesto. La app y el código de Next siempre
+//   se piden a la red para no servir versiones viejas.
 // =============================================================================
 
-const CACHE_NAME = 'riego-inteligente-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-];
+const CACHE_NAME = 'agromai-v3';
+const STATIC_ASSETS = ['/manifest.json', '/agromai-logo.png', '/icons/icon-192x192.png', '/icons/icon-72x72.png'];
 
-// Instalación: cachear assets estáticos
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
-// Activación: limpiar caches antiguos
+// Borra cachés anteriores (la v1 guardaba páginas y chunks de Next).
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-      );
-    })
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch: Network First para API, Cache First para assets
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // No cachear peticiones al backend API
-  if (url.pathname.startsWith('/api') || url.hostname !== self.location.hostname) {
+  // Navegación: red primero; sin conexión, una página mínima.
+  if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => {
-        return new Response(
-          JSON.stringify({ error: 'Sin conexión', offline: true }),
-          {
-            headers: { 'Content-Type': 'application/json' },
-            status: 503,
-          }
-        );
-      })
+      fetch(event.request).catch(
+        () =>
+          new Response('<h1 style="font-family:sans-serif">agromIA sin conexión</h1><p>Revisa tu conexión e inténtalo de nuevo.</p>', {
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          })
+      )
     );
     return;
   }
 
-  // Cache First para assets estáticos
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
+  // Íconos y manifiesto: caché primero.
+  if (STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  }
+});
 
-      return fetch(request).then((response) => {
-        // Cachear respuestas válidas
-        if (response.ok && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clone);
-          });
-        }
-        return response;
-      });
+const VIBRACION = {
+  critica: [300, 100, 300, 100, 300],
+  alta: [200, 100, 200],
+  media: [150],
+  baja: [],
+};
+
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const severidad = data.severidad || 'media';
+
+  event.waitUntil(
+    self.registration.showNotification(data.titulo || '🌱 agromIA', {
+      body: data.mensaje || 'Nueva alerta del sistema de riego',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      vibrate: VIBRACION[severidad] || VIBRACION.media,
+      tag: data.clave || data.tipo || 'alerta',
+      renotify: severidad === 'critica' || severidad === 'alta',
+      requireInteraction: severidad === 'critica',
+      data,
+      actions: [
+        { action: 'ver', title: 'Ver dashboard' },
+        { action: 'cerrar', title: 'Cerrar' },
+      ],
     })
   );
 });
 
-// Push notifications para alertas
-self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-
-  const options = {
-    body: data.mensaje || 'Nueva alerta del sistema de riego',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    vibrate: [200, 100, 200],
-    tag: data.tipo || 'alerta',
-    data: data,
-    actions: [
-      { action: 'ver', title: 'Ver Dashboard' },
-      { action: 'cerrar', title: 'Cerrar' },
-    ],
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(
-      data.titulo || '🌱 Riego Inteligente',
-      options
-    )
-  );
-});
-
-// Click en notificación
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if (event.action === 'cerrar') return;
 
-  if (event.action === 'ver' || !event.action) {
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then((clients) => {
-        if (clients.length > 0) {
-          return clients[0].focus();
-        }
-        return self.clients.openWindow('/');
-      })
-    );
-  }
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const abierta = clients.find((client) => new URL(client.url).origin === self.location.origin);
+      return abierta ? abierta.focus() : self.clients.openWindow('/');
+    })
+  );
 });

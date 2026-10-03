@@ -24,6 +24,38 @@ export interface Cultivo {
 
 // ---- Parcelas ----
 export type ModoOperacion = 'automatico' | 'manual';
+export type MetodoRiego = 'goteo' | 'microaspersion' | 'aspersion' | 'aspersion_presurizada' | 'inundacion';
+// Sistema(s) con los que riega la parcela: uno o los dos instalados a la vez.
+export type SeleccionRiego = MetodoRiego | 'ambos';
+
+// Tubería instalada por el técnico; sin instalación la parcela no puede regar por válvula.
+export interface InstalacionRiego {
+  estado: 'pendiente' | 'instalada';
+  metodo: MetodoRiego;
+  metros_tuberia: number;
+  emisores: number; // goteros o aspersores
+  fecha?: string;
+  tecnico?: string;
+  notas?: string;
+}
+
+// ---- Sesiones ----
+export type Rol = 'tecnico' | 'productor';
+
+export interface UsuarioSesion {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  plan?: 'basico' | 'pro';
+}
+
+export interface Sesion {
+  token: string;
+  usuario: UsuarioSesion;
+  expira: string;
+  demo?: boolean; // sesión local cuando el backend no está disponible
+}
 export type Zona3D = 'zona_alta' | 'zona_media' | 'zona_baja';
 
 export interface Parcela {
@@ -40,6 +72,8 @@ export interface Parcela {
   color_base: string;
   activa: boolean;
   modo_operacion: ModoOperacion;
+  metodo_riego?: SeleccionRiego | null; // null = el recomendado por el cultivo
+  instalaciones_riego?: InstalacionRiego[] | null; // una por sistema; null = instalación previa al registro (operativa)
   propietario: string;
   notas?: string;
   sensores_activos?: {
@@ -112,10 +146,45 @@ export interface TanqueAgua {
 }
 
 // ---- Sistema de Dron de Riego de Emergencia ----
+export type TipoMisionDron = 'riego' | 'fumigacion' | 'escaneo';
+
+// Resultado del clasificador de visión del dron al escanear una parcela.
+export interface EscaneoPlaga {
+  id: string;
+  parcela_id: string;
+  parcela_nombre: string;
+  plaga_detectada: boolean;
+  confianza: number; // 0-1
+  plaga?: string;
+  severidad?: Severidad;
+  recomendacion?: string;
+  fecha: string;
+}
+
+// Predicción del modelo de riesgo de plagas antes de escanear.
+export interface RiesgoPlaga {
+  probabilidad: number; // 0-1
+  nivel: 'bajo' | 'moderado' | 'alto';
+  factores: string[];
+  plaga_probable: string;
+}
+
+export interface MisionDronResumen {
+  tipo: TipoMisionDron;
+  parcela_id: string;
+  parcela_nombre: string;
+  litros_objetivo: number;
+  litros_aplicados: number;
+  completada: boolean;
+  motivo_fin: string;
+  fin: string;
+  escaneo?: EscaneoPlaga;
+}
+
 export interface DronRiego {
   id: string;
   nombre: string;
-  estado: 'en_base' | 'regando' | 'cargando_agua' | 'emergencia';
+  estado: 'en_base' | 'regando' | 'fumigando' | 'escaneando' | 'cargando_agua' | 'emergencia';
   nivel_agua_porcentaje: number;
   capacidad_litros: number;
   bateria_porcentaje: number;
@@ -125,6 +194,16 @@ export interface DronRiego {
   dias_sin_lluvia: number;
   requiere_riego_emergencia: boolean;
   ultimo_despacho?: string;
+  objetivo_parcela_id?: string;
+  // Misión en curso: el dron descarga una dosis calculada para la parcela objetivo.
+  tipo_mision?: TipoMisionDron;
+  litros_objetivo?: number;
+  litros_aplicados?: number;
+  avance_porcentaje?: number; // progreso de la misión (escaneo: superficie recorrida)
+  // Cartucho de biopreparado orgánico que se inyecta en línea durante la fumigación.
+  nivel_biopreparado_porcentaje: number;
+  capacidad_biopreparado_litros: number;
+  ultima_mision?: MisionDronResumen;
 }
 
 // ---- Historial de Riego ----
@@ -145,7 +224,19 @@ export interface EventoRiego {
 }
 
 // ---- Alertas ----
-export type TipoAlerta = 'prevencion_organica' | 'nivel_reserva' | 'temperatura' | 'humedad_critica' | 'pronostico' | 'dron_vacio' | 'dron_emergencia';
+export type TipoAlerta =
+  | 'prevencion_organica'
+  | 'nivel_reserva'
+  | 'temperatura'
+  | 'humedad_critica'
+  | 'pronostico'
+  | 'dron_vacio'
+  | 'dron_emergencia'
+  | 'plaga_detectada'
+  | 'escaneo_limpio'
+  | 'riesgo_plaga'
+  | 'sequia'
+  | 'lluvia_proxima';
 export type Severidad = 'baja' | 'media' | 'alta' | 'critica';
 
 export interface Alerta {
@@ -173,6 +264,8 @@ export interface PronosticoClimaHora {
 
 export interface PronosticoClimaDia {
   dia: string;
+  fecha?: string;
+  periodo?: 'historico' | 'pronostico';
   temp_min: number;
   temp_max: number;
   probabilidad_lluvia: number;
@@ -195,6 +288,9 @@ export interface PronosticoClima {
   sensacion_termica?: number;
   pronostico_por_hora?: PronosticoClimaHora[];
   pronostico_dias?: PronosticoClimaDia[];
+  proximo_riego?: string;
+  requiere_riego_emergencia?: boolean;
+  razon_riego_emergencia?: string;
   fuente_api: string;
   consultado_at: string;
 }
@@ -228,6 +324,18 @@ export interface ParcelaDashboard {
   valvula_estado: EstadoValvula;
   valvula_modo: ModoOperacion;
   ultimo_riego?: EventoRiego;
+  // Riego por tubería según el sistema instalado en la parcela
+  metodo_riego?: SeleccionRiego;
+  sistemas_instalados?: MetodoRiego[]; // tuberías terminadas en la parcela
+  sistemas_activos?: MetodoRiego[]; // los que riegan con la selección actual
+  caudal_lpm?: number; // litros por minuto que toma de la cisterna con la válvula abierta
+  eficiencia_riego?: number; // fracción del agua que llega a la raíz (0-1)
+  litros_hoy?: number;
+  riego_pospuesto_por_lluvia?: boolean;
+  tuberia_pendiente?: boolean; // el sistema seleccionado aún no está instalado
+  // IA de plagas
+  riesgo_plaga?: RiesgoPlaga;
+  ultimo_escaneo?: EscaneoPlaga;
 }
 
 export interface Estadisticas {
@@ -241,7 +349,7 @@ export interface Estadisticas {
   riegos_hoy: number;
 }
 
-// ---- Datos de Simulación (desde Arduino/Tinkercad) ----
+// ---- Telemetría de sensores ----
 export interface DatosSimulacion {
   humedad_cana: number;
   humedad_tomate: number;
@@ -270,6 +378,8 @@ export interface CreateParcelaDTO {
   superficie_hectareas: number;
   zona_3d: Zona3D;
   modo_operacion: ModoOperacion;
+  metodo_riego?: SeleccionRiego | null;
+  instalaciones_riego?: InstalacionRiego[] | null;
   color_base?: string;
   tiene_cultivo: boolean;
   cultivo_id?: string | null;
@@ -285,6 +395,17 @@ export interface CreateParcelaDTO {
     temperatura_valor: number;
     ph_suelo_valor: number;
   };
+}
+
+export interface UpdateParcelaDTO {
+  nombre?: string;
+  activa?: boolean;
+  tiene_cultivo?: boolean;
+  cultivo_id?: string | null;
+  modo_operacion?: ModoOperacion;
+  metodo_riego?: SeleccionRiego | null;
+  instalaciones_riego?: InstalacionRiego[] | null;
+  notas?: string;
 }
 
 // ---- WebSocket Events ----

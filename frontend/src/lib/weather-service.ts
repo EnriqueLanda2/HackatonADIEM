@@ -72,7 +72,7 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
 
   // 2. Open-Meteo (Proveedor gratuito de alta precisión para Morelos, sin API Key requerida)
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${MORELOS_COORDS.lat}&longitude=${MORELOS_COORDS.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${MORELOS_COORDS.lat}&longitude=${MORELOS_COORDS.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&past_days=5&forecast_days=6`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     
     if (res.ok) {
@@ -85,7 +85,10 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
       const windDir = getWindDirection(current.wind_direction_10m);
 
       // Extraer próximas 6 horas
-      const currentHour = new Date().getHours();
+      const currentHour = Math.max(
+        0,
+        hourly.time.findIndex((time: string) => new Date(time).getTime() >= Date.now() - 30 * 60 * 1000)
+      );
       const pronosticoPorHora: PronosticoClimaHora[] = [];
       for (let i = currentHour; i < currentHour + 6 && i < (hourly.time?.length || 0); i++) {
         const timeStr = hourly.time[i] ? new Date(hourly.time[i]).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : `${i}:00`;
@@ -100,15 +103,19 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
         });
       }
 
-      // Extraer pronóstico diario (próximos 5 días)
+      // Open-Meteo devuelve 5 días históricos y 6 días futuros en el mismo arreglo.
       const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
       const pronosticoDias: PronosticoClimaDia[] = [];
-      for (let d = 0; d < Math.min(5, daily.time?.length || 0); d++) {
+      const historicalCount = Math.min(5, daily.time?.length || 0);
+      for (let d = 0; d < Math.min(11, daily.time?.length || 0); d++) {
         const dateObj = new Date(daily.time[d] + 'T12:00:00');
-        const diaNombre = d === 0 ? 'Hoy' : diasSemana[dateObj.getDay()];
+        const isHistorical = d < historicalCount;
+        const diaNombre = d === historicalCount ? 'Hoy' : diasSemana[dateObj.getDay()];
         const condDia = mapWeatherCode(daily.weather_code[d] || 0);
         pronosticoDias.push({
           dia: diaNombre,
+          fecha: daily.time[d],
+          periodo: isHistorical ? 'historico' : 'pronostico',
           temp_min: Math.round(daily.temperature_2m_min[d]),
           temp_max: Math.round(daily.temperature_2m_max[d]),
           probabilidad_lluvia: daily.precipitation_probability_max[d] || 0,
@@ -117,8 +124,11 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
       }
 
       const rainProb12h = Math.max(...(hourly.precipitation_probability.slice(currentHour, currentHour + 12) || [5]));
-      const rainProb3dias = (daily.precipitation_probability_max?.slice(0, 3) || []).some((p: number) => p > 35);
+      const futureRain = daily.precipitation_probability_max?.slice(historicalCount + 1, historicalCount + 4) || [];
+      const rainProb3dias = futureRain.some((p: number) => p > 35);
       const diasSinLluvia = rainProb3dias ? 0 : 3;
+      const requiereRiegoEmergencia = diasSinLluvia >= 3;
+      const nextWatering = new Date(Date.now() + (requiereRiegoEmergencia ? 0 : 24) * 3600000);
 
       return {
         pronostico_lluvia_12h: rainProb12h > 40,
@@ -136,6 +146,11 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
         indice_uv: 6,
         pronostico_por_hora: pronosticoPorHora,
         pronostico_dias: pronosticoDias,
+        proximo_riego: nextWatering.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }),
+        requiere_riego_emergencia: requiereRiegoEmergencia,
+        razon_riego_emergencia: requiereRiegoEmergencia
+          ? 'No se esperan lluvias suficientes durante los próximos 3 días.'
+          : 'Se esperan precipitaciones; se pospone el riego de emergencia.',
         fuente_api: 'Open-Meteo (Morelos)',
         consultado_at: new Date().toISOString(),
       };

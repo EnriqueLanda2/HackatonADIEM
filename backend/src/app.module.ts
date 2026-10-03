@@ -11,11 +11,16 @@ import { AlertsModule } from './modules/alerts/alerts.module';
 import { IrrigationModule } from './modules/irrigation/irrigation.module';
 import { WeatherModule } from './modules/weather/weather.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { DroneModule } from './modules/drone/drone.module';
+import { BitacoraModule } from './modules/bitacora/bitacora.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(databaseConfig),
+    AuthModule,
     CropsModule,
     ParcelsModule,
     SensorsModule,
@@ -24,6 +29,9 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     IrrigationModule,
     WeatherModule,
     DashboardModule,
+    NotificationsModule,
+    DroneModule,
+    BitacoraModule,
   ],
 })
 export class AppModule {}

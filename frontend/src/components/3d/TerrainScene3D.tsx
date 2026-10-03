@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -23,11 +23,19 @@ export function getStatusFromHumidity(hum: number) {
   return { label: 'Saturado', color: HUMIDITY_COLORS.saturado, key: 'saturado' };
 }
 
-const ZONE_POSITIONS: Record<string, [number, number, number]> = {
-  zona_alta: [-3.4, 0.25, 0],   // Caña (Norte)
-  zona_media: [0, 0.25, 0],     // Tomate (Centro)
-  zona_baja: [3.4, 0.25, 0],    // Arroz (Sur)
-};
+// Las parcelas se acomodan en una cuadrícula: 3 por fila, centrada en la maqueta.
+// La cisterna y la base del dron quedan a la derecha, fuera de la cuadrícula.
+const PARCELAS_POR_FILA = 3;
+const ESPACIO_COLUMNAS = 3.4;
+const ESPACIO_FILAS = 4.4;
+
+function posicionParcela(indice: number, total: number): [number, number, number] {
+  const fila = Math.floor(indice / PARCELAS_POR_FILA);
+  const filas = Math.ceil(total / PARCELAS_POR_FILA);
+  const col = indice % PARCELAS_POR_FILA;
+  const enEstaFila = Math.min(PARCELAS_POR_FILA, total - fila * PARCELAS_POR_FILA);
+  return [(col - (enEstaFila - 1) / 2) * ESPACIO_COLUMNAS, 0.25, (fila - (filas - 1) / 2) * ESPACIO_FILAS];
+}
 
 const TANK_POSITION: [number, number, number] = [6.4, 0.9, -0.2];
 const DRON_DOCK_POSITION: [number, number, number] = [6.4, 0.15, 2.2];
@@ -195,6 +203,127 @@ function SensorProbe3D({ statusColor }: { statusColor: string }) {
 }
 
 // Válvula de solenoide 3D
+// Goteo: cintas a ras de suelo con gotas pequeñas que caen junto a la raíz.
+function DripLines3D({ isOpen }: { isOpen: boolean }) {
+  // Las cintas van sobre la superficie del terreno (y = 0.15) para que se vean entre las plantas.
+  const lineasX = [-0.9, 0, 0.9];
+  const emisoresZ = useMemo(() => Array.from({ length: 8 }, (_, i) => -1.4 + i * 0.4), []);
+  const gotas = useRef<(THREE.Mesh | null)[]>([]);
+
+  useFrame((state) => {
+    if (!isOpen) return;
+    const t = state.clock.elapsedTime;
+    gotas.current.forEach((gota, i) => {
+      if (!gota) return;
+      const fase = (t * 1.4 + i * 0.37) % 1; // cada gota cae y reaparece
+      gota.position.y = 0.42 - fase * 0.24;
+      gota.scale.setScalar(1 - fase * 0.5);
+    });
+  });
+
+  return (
+    <group position={[0, 0, 0]}>
+      {lineasX.map((x, li) => (
+        <group key={x} position={[x, 0, 0]}>
+          {/* Cinta de goteo */}
+          <mesh position={[0, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 3.4, 8]} />
+            <meshStandardMaterial color={isOpen ? '#0ea5e9' : '#e2e8f0'} emissive={isOpen ? '#0ea5e9' : '#000000'} emissiveIntensity={isOpen ? 0.6 : 0} roughness={0.5} />
+          </mesh>
+          {/* Franja de suelo mojado */}
+          {isOpen && (
+            <mesh position={[0, 0.162, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[0.45, 3.4]} />
+              <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} />
+            </mesh>
+          )}
+          {/* Emisores y gotas cayendo */}
+          {emisoresZ.map((z, ei) => (
+            <group key={z} position={[0, 0, z]}>
+              <mesh position={[0, 0.2, 0]}>
+                <sphereGeometry args={[0.055, 8, 8]} />
+                <meshStandardMaterial color={isOpen ? '#7dd3fc' : '#94a3b8'} emissive={isOpen ? '#38bdf8' : '#000000'} emissiveIntensity={isOpen ? 0.8 : 0} />
+              </mesh>
+              {isOpen && (
+                <mesh ref={(el) => { gotas.current[li * emisoresZ.length + ei] = el; }} position={[0, 0.35, 0]}>
+                  <sphereGeometry args={[0.055, 8, 8]} />
+                  <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={1} transparent opacity={0.9} />
+                </mesh>
+              )}
+            </group>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// Aspersión: elevadores con un abanico de agua alto que moja el follaje.
+
+function MicroSprinklers3D({ isOpen }: { isOpen: boolean }) {
+  const heads = useRef<THREE.Group[]>([]);
+  useFrame((_, delta) => {
+    if (isOpen) heads.current.forEach((head) => head && (head.rotation.y += delta * 6));
+  });
+  return (
+    <group>
+      {[
+        [-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]
+      ].map(([x, z], idx) => (
+        <group key={idx} position={[x, 0, z]}>
+          <mesh position={[0, 0.15, 0]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.3, 6]} />
+            <meshStandardMaterial color="#4ade80" metalness={0.5} />
+          </mesh>
+          <group ref={(el) => { if (el) heads.current[idx] = el; }} position={[0, 0.3, 0]}>
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.1, 6]} />
+              <meshStandardMaterial color="#EDE383" />
+            </mesh>
+            {isOpen && (
+              <mesh position={[0, -0.1, 0]}>
+                <coneGeometry args={[0.2, 0.2, 12, 1, true]} />
+                <meshBasicMaterial color="#60a5fa" transparent opacity={0.3} side={THREE.DoubleSide} />
+              </mesh>
+            )}
+          </group>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Sprinklers3D({ isOpen }: { isOpen: boolean }) {
+  const heads = useRef<THREE.Group[]>([]);
+  useFrame((_, delta) => {
+    if (isOpen) heads.current.forEach((head) => head && (head.rotation.y += delta * 3));
+  });
+  return (
+    <group>
+      {[
+        [-0.8, -0.9],
+        [0.8, 0.9],
+      ].map(([x, z], idx) => (
+        <group key={idx} position={[x, 0, z]}>
+          <mesh position={[0, 0.35, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 0.7, 6]} />
+            <meshStandardMaterial color="#64748b" metalness={0.7} />
+          </mesh>
+          <group ref={(el) => { if (el) heads.current[idx] = el; }} position={[0, 0.72, 0]}>
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.015, 0.015, 0.22, 6]} />
+              <meshStandardMaterial color="#EDE383" />
+            </mesh>
+          </group>
+          {isOpen && (
+            <Sparkles count={60} scale={[2.0, 1.4, 2.0]} size={3.2} speed={2.4} opacity={0.75} color="#38bdf8" position={[0, 0.9, 0]} />
+          )}
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function SolenoidValve3D({ isOpen, position }: { isOpen: boolean; position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -225,7 +354,7 @@ interface ParcelZoneProps {
   selected?: boolean;
 }
 
-function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
+function ParcelZone({ parcela, position, onClick, selected, compacto = false }: ParcelZoneProps & { compacto?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const colorRef = useRef(new THREE.Color(getStatusFromHumidity(parcela.humedad_suelo).color));
   const [hovered, setHovered] = useState(false);
@@ -295,18 +424,15 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       {/* Válvula de solenoide */}
       <SolenoidValve3D isOpen={isOpen} position={[-1.15, 0.15, -1.7]} />
 
-      {/* Partículas de riego cuando la válvula está abierta */}
-      {isOpen && (
-        <Sparkles
-          count={80}
-          scale={[2.5, 1.8, 3.5]}
-          size={3.5}
-          speed={2.2}
-          opacity={0.7}
-          color="#8DA432"
-          position={[0, 1.0, 0]}
-        />
+      {/* Tuberías instaladas (goteo, aspersión o las dos); solo riegan las que están en uso */}
+      {parcela.tiene_cultivo && parcela.sistemas_instalados?.includes('goteo') && (
+        <DripLines3D isOpen={isOpen && Boolean(parcela.sistemas_activos?.includes('goteo'))} />
       )}
+      {parcela.tiene_cultivo && parcela.sistemas_instalados?.includes('aspersion_presurizada') && (
+        <Sprinklers3D isOpen={isOpen && Boolean(parcela.sistemas_activos?.includes('aspersion_presurizada'))} />
+      )}
+
+
 
       {/* Varilla / Soporte fino que conecta visualmente el terreno con la tarjeta flotante */}
       <mesh position={[0, 1.35, 0]}>
@@ -318,25 +444,34 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       {/* ETIQUETA FLOTANTE CON MAYOR PADDING Y ELEVACIÓN (NO TAPA EL CULTIVO)  */}
       {/* ===================================================================== */}
       <Html position={[0, 2.5, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-[#8DA432]/40 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-tight text-[#FFFCE9]">{parcela.parcela.nombre}</span>
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full font-bold text-[#FFFCE9] shadow-sm"
-              style={{ backgroundColor: status.color }}
-            >
-              {status.label}
-            </span>
+        {compacto ? (
+          // En teléfono: nombre corto y humedad, para no tapar la escena
+          <div className="flex max-w-[120px] items-center gap-1 whitespace-nowrap rounded-lg border border-applegreen/40 bg-panel/95 px-1.5 py-0.5 text-[9px] text-creme shadow-lg">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
+            <span className="truncate font-bold">{parcela.parcela.nombre.split(' - ').pop()}</span>
+            <span className="font-semibold text-flax">{humedadSuelo.toFixed(0)}%</span>
           </div>
+        ) : (
+          <div className="bg-panel/95 text-creme px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-applegreen/40 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm tracking-tight text-creme">{parcela.parcela.nombre}</span>
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full font-bold text-creme shadow-sm"
+                style={{ backgroundColor: status.color }}
+              >
+                {status.label}
+              </span>
+            </div>
 
-          <div className="text-[11px] text-[#EDE383] font-medium flex items-center gap-2 bg-[#161616] px-2.5 py-1 rounded-lg border border-[#8DA432]/30">
-            <span className="text-[#FFFCE9] font-bold">💧 {humedadSuelo.toFixed(0)}%</span>
-            <span className="text-[#8DA432]">·</span>
-            <span className="text-[#EDE383] font-semibold">🌡️ {tempSuelo.toFixed(1)}°C</span>
-            <span className="text-[#8DA432]">·</span>
-            <span className="text-[#8DA432] font-semibold">🧪 pH {phVal.toFixed(1)}</span>
+            <div className="text-[11px] text-flax font-medium flex items-center gap-2 bg-card px-2.5 py-1 rounded-lg border border-applegreen/30">
+              <span className="text-creme font-bold">💧 {humedadSuelo.toFixed(0)}%</span>
+              <span className="text-applegreen">·</span>
+              <span className="text-flax font-semibold">🌡️ {tempSuelo.toFixed(1)}°C</span>
+              <span className="text-applegreen">·</span>
+              <span className="text-applegreen font-semibold">🧪 pH {phVal.toFixed(1)}</span>
+            </div>
           </div>
-        </div>
+        )}
       </Html>
     </group>
   );
@@ -345,10 +480,15 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
 // =============================================================================
 // Modelo 3D del Dron de Riego de Emergencia y su Estación de Carga
 // =============================================================================
-function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
+function DroneAndDock3D({ dron, parcelas, compacto = false }: { dron?: DronRiego; parcelas: ParcelaDashboard[]; compacto?: boolean }) {
   const dronRef = useRef<THREE.Group>(null);
   const rotorsRef = useRef<THREE.Mesh[]>([]);
-  const isSpraying = dron?.estado === 'regando' || dron?.mision_activa;
+  const target = parcelas.find((parcela) => parcela.parcela.id === dron?.objetivo_parcela_id);
+  // Sin parcela objetivo no hay aspersión: evita que el dron "riegue" sobre la base.
+  const isSpraying = Boolean(dron?.mision_activa && target);
+  const fumigando = dron?.tipo_mision === 'fumigacion';
+  const escaneando = dron?.tipo_mision === 'escaneo';
+  const targetPosition = target ? posicionParcela(parcelas.indexOf(target), parcelas.length) : null;
 
   // Animación del vuelo del dron sobre las parcelas
   useFrame((state) => {
@@ -359,11 +499,12 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
 
     if (dronRef.current) {
       if (isSpraying) {
-        // Trayectoria circular de patrullaje de riego sobre las 3 parcelas
+        // El vuelo queda limitado a la parcela objetivo; no patrulla el resto.
         const t = state.clock.elapsedTime * 0.8;
-        dronRef.current.position.x = Math.sin(t) * 4.0;
-        dronRef.current.position.z = Math.cos(t * 0.7) * 2.2;
-        dronRef.current.position.y = 3.6 + Math.sin(t * 2) * 0.15;
+        const [targetX, , targetZ] = targetPosition ?? DRON_DOCK_POSITION;
+        dronRef.current.position.x = targetX + Math.sin(t) * 0.8;
+        dronRef.current.position.z = targetZ + Math.cos(t * 0.7) * 0.7;
+        dronRef.current.position.y = 3.0 + Math.sin(t * 2) * 0.15;
         dronRef.current.rotation.y = -t;
         dronRef.current.rotation.z = Math.cos(t) * 0.1;
       } else {
@@ -430,8 +571,8 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
 
         {/* Etiqueta de la Base */}
         <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
-          <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[#8DA432]/40 shadow-lg whitespace-nowrap">
-            Estación Dron: {enBase ? '🟢 Objeto detectado' : '⚪ Libre'}
+          <div className={`whitespace-nowrap rounded-lg border border-applegreen/40 bg-panel/95 font-bold text-creme shadow-lg ${compacto ? 'px-1.5 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'}`}>
+            {compacto ? `Base ${enBase ? '🟢' : '⚪'}` : `Estación Dron: ${enBase ? '🟢 Objeto detectado' : '⚪ Libre'}`}
           </div>
         </Html>
       </group>
@@ -494,22 +635,32 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
         {/* Boquillas de aspersión y partículas de agua si está en misión */}
         {isSpraying && (
           <group position={[0, -0.2, 0]}>
+            {/* Escaneo: haz de la cámara. Riego: gotas de agua. Fumigación: bruma fina de biopreparado. */}
+            {escaneando ? (
+              <mesh position={[0, -1.4, 0]}>
+                <coneGeometry args={[1.3, 2.8, 24, 1, true]} />
+                <meshBasicMaterial color="#8DA432" transparent opacity={0.18} side={THREE.DoubleSide} depthWrite={false} />
+              </mesh>
+            ) : (
             <Sparkles
-              count={120}
-              scale={[3.0, 2.5, 3.0]}
-              size={4.0}
-              speed={3.5}
-              opacity={0.85}
-              color="#38bdf8"
+              count={fumigando ? 220 : 120}
+              scale={fumigando ? [3.6, 2.8, 3.6] : [3.0, 2.5, 3.0]}
+              size={fumigando ? 2.2 : 4.0}
+              speed={fumigando ? 1.6 : 3.5}
+              opacity={fumigando ? 0.6 : 0.85}
+              color={fumigando ? '#EDE383' : '#38bdf8'}
             />
+            )}
           </group>
         )}
 
         {/* Etiqueta del Dron en Vuelo */}
         {isSpraying && (
           <Html position={[0, 0.7, 0]} center style={{ pointerEvents: 'none' }}>
-            <div className="bg-sky-950/90 text-sky-200 border border-sky-400/50 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg animate-pulse whitespace-nowrap">
-              🚁 RIEGO POR DRON EN CURSO
+            <div className={`animate-pulse whitespace-nowrap rounded-full border border-flax/60 bg-ink/90 font-bold text-creme shadow-lg ${compacto ? 'px-1.5 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'}`}>
+              {compacto
+                ? escaneando ? '🔍 Escaneo' : fumigando ? '🧪 Fumigando' : '💧 Regando'
+                : escaneando ? '🔍 ESCANEO IA DE PLAGAS' : fumigando ? '🧪 FUMIGACIÓN EN CURSO' : '💧 RIEGO POR DRON EN CURSO'}
             </div>
           </Html>
         )}
@@ -521,7 +672,7 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
 // =============================================================================
 // Cisterna 3D y Red de Tuberías
 // =============================================================================
-function CisternAndPiping({ nivel: rawNivel }: { nivel: number }) {
+function CisternAndPiping({ nivel: rawNivel, compacto = false }: { nivel: number; compacto?: boolean }) {
   const waterRef = useRef<THREE.Mesh>(null);
   const nivel = Number(rawNivel ?? 80);
   const isCritical = nivel < 25;
@@ -562,23 +713,34 @@ function CisternAndPiping({ nivel: rawNivel }: { nivel: number }) {
       </mesh>
 
       <Html position={[0, 1.35, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#1e1e1e]/95 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
-          🚰 Cisterna: {nivel.toFixed(0)}%
+        <div className={`whitespace-nowrap rounded-xl border border-applegreen/40 bg-panel/95 font-bold text-creme shadow-xl backdrop-blur-md ${compacto ? 'px-1.5 py-0.5 text-[9px]' : 'px-3 py-1.5 text-xs'}`}>
+          🚰 {compacto ? '' : 'Cisterna: '}{nivel.toFixed(0)}%
         </div>
       </Html>
     </group>
   );
 }
 
-function WaterPipes() {
+function WaterPipes({ z = -1.7 }: { z?: number }) {
   return (
     <group>
-      <mesh position={[1.5, 0.05, -1.7]} rotation={[0, 0, Math.PI / 2]}>
+      <mesh position={[1.5, 0.05, z]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.05, 0.05, 8.5, 8]} />
         <meshStandardMaterial color="#8DA432" metalness={0.7} roughness={0.3} />
       </mesh>
     </group>
   );
+}
+
+function useMediaQuery(query: string) {
+  const [coincide, setCoincide] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const consulta = window.matchMedia(query);
+    const cambio = () => setCoincide(consulta.matches);
+    consulta.addEventListener('change', cambio);
+    return () => consulta.removeEventListener('change', cambio);
+  }, [query]);
+  return coincide;
 }
 
 // =============================================================================
@@ -589,6 +751,7 @@ interface TerrainScene3DProps {
   tanqueNivel: number;
   tanqueCapacidad: number;
   dron?: DronRiego;
+  incluyeDron?: boolean;
   onParcelaSelect?: (parcelaId: string) => void;
   selectedParcelaId?: string;
 }
@@ -597,15 +760,25 @@ export default function TerrainScene3D({
   parcelas,
   tanqueNivel,
   dron,
+  incluyeDron = true,
   onParcelaSelect,
   selectedParcelaId,
 }: TerrainScene3DProps) {
+  // Pantalla angosta (teléfono): cámara más lejana, etiquetas compactas y menos resolución.
+  const compacto = useMediaQuery('(max-width: 639px)');
+  // Las etiquetas completas solo caben sin encimarse en monitores grandes.
+  const etiquetasCompactas = useMediaQuery('(max-width: 1535px)');
+  const filas = Math.max(1, Math.ceil(parcelas.length / PARCELAS_POR_FILA));
+  const alejar = 1 + (filas - 1) * 0.55; // más filas, cámara más lejos
+
   return (
-    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#1e1e1e]">
+    <div className="relative h-full min-h-[360px] w-full overflow-hidden rounded-xl bg-panel sm:min-h-[440px] md:min-h-[480px]">
       <Canvas
-        shadows
-        camera={{ position: [0, 9.8, 10.2], fov: 44 }}
-        gl={{ antialias: true }}
+        key={`${compacto ? 'compacto' : 'amplio'}-${filas}`}
+        shadows={!compacto}
+        dpr={[1, 2]}
+        camera={compacto ? { position: [1.2, 12.5 * alejar, 14 * alejar], fov: 50 } : { position: [0, 9.8 * alejar, 10.2 * alejar], fov: 44 }}
+        gl={{ antialias: true, powerPreference: 'low-power' }}
       >
         <color attach="background" args={['#1c2a04']} />
 
@@ -620,71 +793,65 @@ export default function TerrainScene3D({
 
         {/* Suelo base de la maqueta agrícola */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.16, 0]} receiveShadow>
-          <planeGeometry args={[18, 10]} />
+          <planeGeometry args={[18, Math.max(10, filas * ESPACIO_FILAS + 2)]} />
           <meshStandardMaterial color="#273a06" roughness={0.95} />
         </mesh>
 
         {/* Caminos de grava entre parcelas */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.15, 0]} receiveShadow>
-          <planeGeometry args={[18, 1.2]} />
-          <meshStandardMaterial color="#365004" roughness={0.9} />
-        </mesh>
+        {Array.from({ length: filas }, (_, f) => (
+          <mesh key={f} rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.15, (f - (filas - 1) / 2) * ESPACIO_FILAS]} receiveShadow>
+            <planeGeometry args={[18, 1.2]} />
+            <meshStandardMaterial color="#365004" roughness={0.9} />
+          </mesh>
+        ))}
 
         {/* Renderizado de parcelas dinámicas */}
-        {parcelas.map((p, idx) => {
-          const zoneKey = p.parcela.zona_3d || 'zona_media';
-          const basePos = ZONE_POSITIONS[zoneKey] || [0, 0.25, 0];
-          const sameZoneIdx = parcelas.slice(0, idx).filter(
-            (item) => (item.parcela.zona_3d || 'zona_media') === zoneKey
-          ).length;
-          const pos: [number, number, number] = [
-            basePos[0],
-            basePos[1],
-            basePos[2] + sameZoneIdx * 4.2,
-          ];
-
-          return (
-            <ParcelZone
-              key={p.parcela.id}
-              parcela={p}
-              position={pos}
-              onClick={() => onParcelaSelect?.(p.parcela.id)}
-              selected={selectedParcelaId === p.parcela.id}
-            />
-          );
-        })}
+        {parcelas.map((p, idx) => (
+          <ParcelZone
+            key={p.parcela.id}
+            parcela={p}
+            position={posicionParcela(idx, parcelas.length)}
+            onClick={() => onParcelaSelect?.(p.parcela.id)}
+            selected={selectedParcelaId === p.parcela.id}
+            compacto={etiquetasCompactas}
+          />
+        ))}
 
         {/* Cisterna volumétrica y tuberías */}
-        <CisternAndPiping nivel={tanqueNivel} />
-        <WaterPipes />
+        <CisternAndPiping nivel={tanqueNivel} compacto={etiquetasCompactas} />
+        {Array.from({ length: filas }, (_, f) => (
+          <WaterPipes key={f} z={(f - (filas - 1) / 2) * ESPACIO_FILAS - 1.7} />
+        ))}
 
         {/* Dron Agrícola de Emergencia y Base con Sensor de Presencia */}
-        <DroneAndDock3D dron={dron} />
+        {incluyeDron && <DroneAndDock3D dron={dron} parcelas={parcelas} compacto={etiquetasCompactas} />}
 
         <OrbitControls
+          // En teléfono la cámara mira al centro real de la maqueta (parcelas, cisterna y base del dron).
+          target={compacto ? [1.2, 0, 1.8] : [0, 0, 0]}
           enablePan={false}
           maxPolarAngle={Math.PI / 2.25}
           minDistance={7}
-          maxDistance={22}
+          maxDistance={(compacto ? 32 : 22) * alejar}
         />
       </Canvas>
 
       {/* Leyenda fija en la esquina inferior */}
-      <div className="absolute bottom-3 left-3 bg-[#1e1e1e]/92 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-[#8DA432]/40 flex items-center gap-3.5 text-[11px] text-[#FFFCE9] pointer-events-none shadow-xl">
+      <div className="pointer-events-none absolute bottom-2 left-2 grid grid-cols-2 gap-x-3 gap-y-1 rounded-xl border border-applegreen/40 bg-panel/92 px-2.5 py-2 text-[10px] text-creme shadow-xl backdrop-blur-md sm:bottom-3 sm:left-3 sm:flex sm:items-center sm:gap-3.5 sm:px-3.5 sm:py-2.5 sm:text-[11px]">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#925E06]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-goldenbrown" />
           <span>Crítico &lt;35%</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#EDE383]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-flax" />
           <span>Bajo</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#8DA432]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-applegreen" />
           <span>Óptimo</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#365004]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-darkgreen" />
           <span>Saturado &gt;75%</span>
         </div>
       </div>

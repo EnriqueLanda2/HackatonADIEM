@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * Paleta agromIA. Los 5 colores de marca más las superficies derivadas del
+ * verde oscuro, para que ningún fondo use grises neutros fuera de la paleta.
+ */
 @theme {
   --color-darkgreen: #365004;
   --color-applegreen: #8DA432;
   --color-flax: #EDE383;
   --color-goldenbrown: #925E06;
   --color-creme: #FFFCE9;
-}
 
-:root {
-  --background: #192604;
-  --foreground: #FFFCE9;
-  --dark-green: #365004;
-  --apple-green: #8DA432;
-  --flax: #EDE383;
-  --golden-brown: #925E06;
-  --creme: #FFFCE9;
+  /* Superficies (verde oscuro mezclado con negro, de más profundo a más claro) */
+  --color-ink: #10170a;
+  --color-card: #18220c;
+  --color-panel: #1f2c0f;
+  --color-field: #2a3a14;
 }
 
 /* Scrollbar styling */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #8DA432 transparent;
+  scrollbar-color: var(--color-applegreen) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -29,11 +29,11 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: #192604;
+  background: var(--color-ink);
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #8DA432;
+  background-color: var(--color-applegreen);
   border-radius: 4px;
 }
 
@@ -56,7 +56,7 @@ canvas {
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: #2a3d06;
+  background: var(--color-field);
   border-radius: 9999px;
   height: 6px;
 }
@@ -67,8 +67,8 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #8DA432;
-  border: 2px solid #FFFCE9;
+  background: var(--color-applegreen);
+  border: 2px solid var(--color-creme);
   cursor: pointer;
   box-shadow: 0 0 6px rgba(141, 164, 50, 0.5);
 }
@@ -77,8 +77,8 @@ input[type="range"]::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #8DA432;
-  border: 2px solid #FFFCE9;
+  background: var(--color-applegreen);
+  border: 2px solid var(--color-creme);
   cursor: pointer;
   box-shadow: 0 0 6px rgba(141, 164, 50, 0.5);
 }
@@ -90,10 +90,53 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  background: #192604;
-  color: #FFFCE9;
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-creme);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Toques rápidos sin el retardo ni el zoom de doble toque */
+button,
+a,
+label,
+select,
+input,
+textarea,
+summary {
+  touch-action: manipulation;
+}
+
+/* iOS hace zoom al enfocar campos con texto menor a 16 px */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Objetivos táctiles cómodos en teléfono (mínimo ~36 px) */
+@media (max-width: 639px) {
+  button,
+  select {
+    min-height: 2.25rem;
+  }
+}
+
+/* Carruseles horizontales sin barra visible */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes fade-in {

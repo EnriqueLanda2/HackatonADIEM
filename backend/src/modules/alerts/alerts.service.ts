@@ -16,6 +16,8 @@ export class AlertsService {
   }
 
   async markAsRead(id: string) {
+    // Las alertas generadas en el dashboard (ids no UUID) no existen en la base.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
     const alert = await this.alertRepo.findOneBy({ id });
     if (!alert) return null;
     alert.leida = true;

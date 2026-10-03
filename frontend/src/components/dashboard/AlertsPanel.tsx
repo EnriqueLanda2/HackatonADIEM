@@ -10,54 +10,61 @@ interface AlertsPanelProps {
 export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
   if (alertas.length === 0) {
     return (
-      <div className="bg-[#161616] border border-[#8DA432]/30 rounded-2xl p-5 text-center shadow-lg shadow-black/15">
+      <div className="bg-card border border-applegreen/30 rounded-2xl p-5 text-center shadow-lg shadow-black/15">
         <span className="text-3xl">✅</span>
-        <p className="text-[#EDE383] text-sm font-semibold mt-2">Sin alertas activas · Todos los parámetros en rango óptimo</p>
+        <p className="text-flax text-sm font-semibold mt-2">Sin alertas activas · Todos los parámetros en rango óptimo</p>
       </div>
     );
   }
 
   const severidadConfig = {
     critica: {
-      bg: 'bg-[#925E06]/60 border-[#925E06]',
+      bg: 'bg-goldenbrown/60 border-goldenbrown',
       icon: '🚨',
-      badge: 'bg-[#925E06] text-[#FFFCE9]',
+      badge: 'bg-goldenbrown text-creme',
       label: 'CRÍTICA',
     },
     alta: {
-      bg: 'bg-[#925E06]/35 border-[#925E06]',
+      bg: 'bg-goldenbrown/35 border-goldenbrown',
       icon: '⚠️',
-      badge: 'bg-[#925E06] text-[#EDE383]',
+      badge: 'bg-goldenbrown text-flax',
       label: 'ALTA',
     },
     media: {
-      bg: 'bg-[#365004]/70 border-[#8DA432]',
+      bg: 'bg-darkgreen/70 border-applegreen',
       icon: '📋',
-      badge: 'bg-[#8DA432] text-[#FFFCE9]',
+      badge: 'bg-applegreen text-ink',
       label: 'MEDIA',
     },
     baja: {
-      bg: 'bg-[#1e1e1e] border-[#8DA432]/40',
+      bg: 'bg-panel border-applegreen/40',
       icon: 'ℹ️',
-      badge: 'bg-[#365004] text-[#EDE383]',
+      badge: 'bg-darkgreen text-flax',
       label: 'INFO',
     },
   };
 
   const tipoConfig: Record<string, { icon: string; color: string }> = {
-    prevencion_organica: { icon: '🍄', color: 'text-[#EDE383]' },
-    nivel_reserva: { icon: '🚰', color: 'text-[#FFFCE9]' },
-    humedad_critica: { icon: '💧', color: 'text-[#FFFCE9]' },
-    temperatura: { icon: '🌡️', color: 'text-[#EDE383]' },
-    pronostico: { icon: '🌧️', color: 'text-[#8DA432]' },
+    prevencion_organica: { icon: '🍄', color: 'text-flax' },
+    nivel_reserva: { icon: '🚰', color: 'text-creme' },
+    humedad_critica: { icon: '💧', color: 'text-creme' },
+    temperatura: { icon: '🌡️', color: 'text-flax' },
+    pronostico: { icon: '🌧️', color: 'text-applegreen' },
+    plaga_detectada: { icon: '🐛', color: 'text-creme' },
+    escaneo_limpio: { icon: '✅', color: 'text-applegreen' },
+    riesgo_plaga: { icon: '🤖', color: 'text-flax' },
+    sequia: { icon: '☀️', color: 'text-flax' },
+    lluvia_proxima: { icon: '🌧️', color: 'text-applegreen' },
+    dron_vacio: { icon: '🚁', color: 'text-flax' },
+    dron_emergencia: { icon: '🧪', color: 'text-flax' },
   };
 
   return (
-    <div className="bg-[#161616] rounded-2xl p-5 border border-[#925E06]/50 shadow-lg shadow-black/15 space-y-3">
-      <div className="flex items-center justify-between pb-2 border-b border-[#8DA432]/20">
-        <h2 className="text-[#FFFCE9] font-bold text-base flex items-center gap-2">
+    <div className="bg-card rounded-2xl p-5 border border-goldenbrown/50 shadow-lg shadow-black/15 space-y-3">
+      <div className="flex items-center justify-between pb-2 border-b border-applegreen/20">
+        <h2 className="text-creme font-bold text-base flex items-center gap-2">
           <span>🔔</span> Alertas Activas del Sembradío
-          <span className="bg-[#925E06] text-[#FFFCE9] font-extrabold text-xs px-2.5 py-0.5 rounded-full shadow-sm">
+          <span className="bg-goldenbrown text-creme font-extrabold text-xs px-2.5 py-0.5 rounded-full shadow-sm">
             {alertas.length}
           </span>
         </h2>
@@ -66,7 +73,7 @@ export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
       <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
         {alertas.map((alerta) => {
           const config = severidadConfig[alerta.severidad] || severidadConfig.media;
-          const tipo = tipoConfig[alerta.tipo] || { icon: '📋', color: 'text-[#FFFCE9]' };
+          const tipo = tipoConfig[alerta.tipo] || { icon: '📋', color: 'text-creme' };
 
           return (
             <div
@@ -88,17 +95,17 @@ export default function AlertsPanel({ alertas, onDismiss }: AlertsPanelProps) {
                   <h3 className={`text-sm font-bold ${tipo.color}`}>
                     {alerta.titulo}
                   </h3>
-                  <p className="text-xs text-[#EDE383] mt-1 leading-relaxed font-medium">
+                  <p className="text-xs text-flax mt-1 leading-relaxed font-medium">
                     {alerta.mensaje}
                   </p>
-                  <div className="text-[10px] text-[#EDE383]/60 mt-2 font-mono">
+                  <div className="text-[10px] text-flax/60 mt-2 font-mono">
                     {new Date(alerta.created_at).toLocaleString('es-MX')}
                   </div>
                 </div>
                 {onDismiss && (
                   <button
                     onClick={() => onDismiss(alerta.id)}
-                    className="text-[#EDE383] hover:text-[#FFFCE9] hover:bg-[#8DA432]/20 p-1 rounded-lg transition-colors text-sm font-bold cursor-pointer"
+                    className="text-flax hover:text-creme hover:bg-applegreen/20 p-1 rounded-lg transition-colors text-sm font-bold cursor-pointer"
                     title="Marcar como leída"
                   >
                     ✕

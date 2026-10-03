@@ -2,6 +2,16 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { Cultivo } from './cultivo.entity';
 import { Sensor } from './sensor.entity';
 
+export interface InstalacionRiego {
+  estado: 'pendiente' | 'instalada';
+  metodo: 'goteo' | 'microaspersion' | 'aspersion_presurizada';
+  metros_tuberia: number;
+  emisores: number;
+  fecha?: string;
+  tecnico?: string;
+  notas?: string;
+}
+
 @Entity('parcelas')
 export class Parcela {
   @PrimaryGeneratedColumn('uuid')
@@ -46,6 +56,14 @@ export class Parcela {
 
   @Column({ length: 20, default: 'automatico' })
   modo_operacion: string;
+
+  // Sistema(s) de riego en uso: goteo, aspersión o ambos; null = el recomendado por el cultivo.
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  metodo_riego: 'goteo' | 'microaspersion' | 'aspersion_presurizada' | 'ambos' | null;
+
+  // Tuberías instaladas por el técnico (una por sistema); null = instalación previa al registro.
+  @Column({ type: 'jsonb', nullable: true })
+  instalaciones_riego: InstalacionRiego[] | null;
 
   @Column({ length: 200, nullable: true })
   propietario: string;

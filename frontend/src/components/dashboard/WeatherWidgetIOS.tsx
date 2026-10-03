@@ -7,137 +7,99 @@ interface WeatherWidgetIOSProps {
 }
 
 export default function WeatherWidgetIOS({ clima }: WeatherWidgetIOSProps) {
-  // Conversión numérica ultra segura para soportar tanto números como strings/nulls de la BD
-  const rawTemp = Number(clima?.temperatura_exterior ?? 26.5);
-  const tempActual = isNaN(rawTemp) ? '26.5' : rawTemp.toFixed(1);
+  const temperatura = Number(clima?.temperatura_exterior ?? 26.5);
   const tempMax = Number(clima?.temperatura_max ?? 32);
   const tempMin = Number(clima?.temperatura_min ?? 19);
-  const condicion = clima?.condicion_texto ?? 'Mayormente soleado';
-  const sensacion = Number(clima?.sensacion_termica ?? rawTemp);
-
-  const rawViento = Number(clima?.velocidad_viento ?? 12.0);
-  const velocidadViento = isNaN(rawViento) ? '12.0' : rawViento.toFixed(1);
-
-  const rawLluvia = Number(clima?.probabilidad_lluvia ?? 10);
-  const probLluvia = isNaN(rawLluvia) ? 10 : Math.round(rawLluvia);
-
-  const rawHumedad = Number(clima?.humedad_relativa_exterior ?? 60);
-  const humedadRelativa = isNaN(rawHumedad) ? 60 : Math.round(rawHumedad);
+  const lluvia = Number(clima?.probabilidad_lluvia ?? 10);
+  const humedad = Number(clima?.humedad_relativa_exterior ?? 60);
+  const viento = Number(clima?.velocidad_viento ?? 12);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const dias = clima?.pronostico_dias ?? [];
+  const historico = dias.filter((dia) => dia.periodo === 'historico' || (!dia.periodo && (dia.fecha ?? '') < hoy));
+  const siguientes = dias.filter((dia) => dia.periodo === 'pronostico' || (!dia.periodo && (dia.fecha ?? '') >= hoy));
 
   return (
-    <div className="bg-[#161616] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col justify-between">
-      {/* ========================================================================= */}
-      {/* CABECERA ESTILO iOS WEATHER                                               */}
-      {/* ========================================================================= */}
+    <div className="bg-card rounded-2xl p-5 border border-applegreen/35 shadow-lg shadow-black/15">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <div className="flex items-center gap-1.5 text-[#EDE383] text-xs font-semibold tracking-wide">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[#8DA432]"
-            >
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            <span>Cuernavaca, Morelos</span>
-          </div>
-          <h3 className="text-4xl font-extrabold text-[#FFFCE9] tracking-tight mt-1">
-            {tempActual}°
-          </h3>
-          <p className="text-xs text-[#EDE383] font-medium mt-0.5">{condicion}</p>
+          <div className="text-flax text-xs font-semibold">📍 Cuernavaca, Morelos</div>
+          <h3 className="text-4xl font-extrabold text-creme tracking-tight mt-1">{temperatura.toFixed(1)}°</h3>
+          <p className="text-xs text-flax font-medium">{clima?.condicion_texto ?? 'Mayormente soleado'}</p>
         </div>
-
-        {/* Máx / Mín y fuente */}
         <div className="text-right">
-          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#1e1e1e] border border-[#8DA432]/40 text-[#EDE383] font-semibold">
+          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-panel border border-applegreen/40 text-flax font-semibold">
             {clima?.fuente_api?.includes('Google') ? 'Google Weather' : 'Satélite en vivo'}
           </span>
-          <div className="text-xs text-[#EDE383] mt-2 font-semibold">
-            Máx. {tempMax}° · Mín. {tempMin}°
-          </div>
+          <div className="text-xs text-flax mt-2 font-semibold">Máx. {tempMax}° · Mín. {tempMin}°</div>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* PRONÓSTICO POR HORA (CAROUSEL TIPO iOS)                                    */}
-      {/* ========================================================================= */}
       {clima?.pronostico_por_hora && clima.pronostico_por_hora.length > 0 && (
-        <div className="border-t border-b border-[#8DA432]/25 py-3 mb-4">
-          <div className="text-[10px] text-[#EDE383] uppercase tracking-wider mb-2 font-bold flex items-center gap-1">
-            <span>Pronóstico próximas horas</span>
-          </div>
-          <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-thin">
-            {clima.pronostico_por_hora.map((item, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col items-center min-w-[50px] py-2 px-1.5 rounded-xl bg-[#1e1e1e] border border-[#8DA432]/20 text-center"
-              >
-                <span className="text-[10px] text-[#EDE383] font-medium">{item.hora}</span>
+        <div className="border-t border-b border-applegreen/25 py-3 mb-4">
+          <div className="text-[10px] text-flax uppercase tracking-wider mb-2 font-bold">Pronóstico próximas horas</div>
+          <div className="no-scrollbar -mx-1 flex snap-x gap-2 overflow-x-auto px-1">
+            {clima.pronostico_por_hora.map((item, index) => (
+              <div key={`${item.hora}-${index}`} className="flex flex-col items-center min-w-[50px] py-2 px-1.5 rounded-xl bg-panel border border-applegreen/20">
+                <span className="text-[10px] text-flax">{item.hora}</span>
                 <span className="text-lg my-1">{item.icono}</span>
-                {Number(item.probabilidad_lluvia) > 15 ? (
-                  <span className="text-[10px] font-extrabold text-[#8DA432]">
-                    {Number(item.probabilidad_lluvia)}%
-                  </span>
-                ) : (
-                  <span className="text-xs font-bold text-[#FFFCE9]">
-                    {Number(item.temperatura)}°
-                  </span>
-                )}
+                <span className="text-[10px] font-bold text-creme">{Number(item.probabilidad_lluvia)}%</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TARJETAS DE DETALLES METEOROLÓGICOS (ESTILO TILES iOS)                     */}
-      {/* ========================================================================= */}
       <div className="grid grid-cols-3 gap-2.5">
-        {/* Probabilidad Lluvia */}
-        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
-          <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
-            <span>🌧️ Lluvia</span>
-          </div>
-          <div className="text-lg font-black text-[#FFFCE9]">
-            {probLluvia}%
-          </div>
-          <div className="text-[9px] text-[#EDE383]/70 truncate font-medium">
-            {clima?.pronostico_lluvia_12h ? 'Lluvia en 12h' : 'Sin precipitación'}
-          </div>
+        <div className="bg-panel p-3 rounded-xl border border-applegreen/25">
+          <div className="text-[10px] text-flax font-semibold">🌧️ Lluvia</div>
+          <div className="text-lg font-black text-creme">{Math.round(lluvia)}%</div>
+          <div className="text-[9px] text-flax/70">{clima?.pronostico_lluvia_12h ? 'Lluvia en 12h' : 'Sin precipitación'}</div>
         </div>
+        <div className="bg-panel p-3 rounded-xl border border-applegreen/25">
+          <div className="text-[10px] text-flax font-semibold">💨 Viento</div>
+          <div className="text-lg font-black text-creme">{viento.toFixed(1)} <span className="text-[10px] font-normal">km/h</span></div>
+          <div className="text-[9px] text-flax/70">Ráfagas {clima?.direccion_viento ?? 'SO'}</div>
+        </div>
+        <div className="bg-panel p-3 rounded-xl border border-applegreen/25">
+          <div className="text-[10px] text-flax font-semibold">🌫️ Humedad</div>
+          <div className="text-lg font-black text-creme">{Math.round(humedad)}%</div>
+          <div className="text-[9px] text-flax/70">Ambiental</div>
+        </div>
+      </div>
 
-        {/* Viento */}
-        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
-          <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
-            <span>💨 Viento</span>
-          </div>
-          <div className="text-lg font-black text-[#FFFCE9]">
-            {velocidadViento} <span className="text-[10px] font-normal text-[#EDE383]/70">km/h</span>
-          </div>
-          <div className="text-[9px] text-[#EDE383]/70 font-medium">
-            Ráfagas {clima?.direccion_viento || 'SO'}
-          </div>
+      <div className="mt-4 border-t border-applegreen/25 pt-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="text-[10px] text-flax uppercase tracking-wider font-bold">Historial · últimos 5 días</span>
+          <span className="text-[10px] text-flax/70">{historico.filter((d) => d.probabilidad_lluvia >= 35).length} días con lluvia</span>
         </div>
-
-        {/* Humedad Ambiental */}
-        <div className="bg-[#1e1e1e] p-3 rounded-xl border border-[#8DA432]/25">
-          <div className="text-[10px] text-[#EDE383] flex items-center gap-1 mb-1 font-semibold">
-            <span>🌫️ Humedad</span>
-          </div>
-          <div className="text-lg font-black text-[#FFFCE9]">
-            {humedadRelativa}%
-          </div>
-          <div className="text-[9px] text-[#EDE383]/70 font-medium">
-            Sensación {sensacion.toFixed(0)}°
-          </div>
+        <div className="no-scrollbar -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1">
+          {historico.map((dia) => (
+            <div key={dia.fecha ?? dia.dia} className="min-w-[48px] rounded-lg bg-panel border border-applegreen/20 p-1.5 text-center">
+              <div className="text-[9px] text-flax/70">{dia.dia}</div>
+              <div className="text-sm">{dia.icono}</div>
+              <div className="text-[9px] text-creme">{dia.probabilidad_lluvia}%</div>
+            </div>
+          ))}
         </div>
+        <div className="flex items-center justify-between gap-2 mt-3 mb-2">
+          <span className="text-[10px] text-flax uppercase tracking-wider font-bold">Hoy y próximos días</span>
+          <span className={`text-[10px] font-bold ${clima.requiere_riego_emergencia ? 'text-creme' : 'text-applegreen'}`}>
+            {clima.requiere_riego_emergencia ? 'Riego de emergencia recomendado' : 'Riego pospuesto'}
+          </span>
+        </div>
+        <div className="no-scrollbar -mx-1 flex snap-x gap-1.5 overflow-x-auto px-1">
+          {siguientes.map((dia) => (
+            <div key={dia.fecha ?? dia.dia} className="min-w-[48px] rounded-lg bg-panel border border-applegreen/20 p-1.5 text-center">
+              <div className="text-[9px] text-flax/70">{dia.dia}</div>
+              <div className="text-sm">{dia.icono}</div>
+              <div className="text-[9px] text-creme">{dia.probabilidad_lluvia}%</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-flax/80 mt-2">
+          Próximo riego: <strong className="text-creme">{clima.proximo_riego ?? 'Calculando...'}</strong>
+        </p>
+        <p className="text-[10px] text-flax/60">{clima.razon_riego_emergencia}</p>
       </div>
     </div>
   );
