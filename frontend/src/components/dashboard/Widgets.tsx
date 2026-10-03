@@ -136,14 +136,23 @@ interface StatsPanelProps {
 export function StatsPanel({ stats }: StatsPanelProps) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
-      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center gap-1">
-        📊 Estadísticas del Día
+      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center justify-between">
+        <span className="flex items-center gap-1">📊 Estadísticas del Día</span>
+        <span className="text-[10px] text-white/40">
+          {stats.parcelas_con_cultivo ?? 0} con cultivo · {stats.parcelas_sin_cultivo ?? 0} sin cultivo
+        </span>
       </h3>
       <div className="grid grid-cols-3 gap-2">
         <StatItem
           icon="🌱"
-          label="Parcelas"
-          value={`${stats.parcelas_activas}/${stats.total_parcelas}`}
+          label="Con Cultivo"
+          value={`${stats.parcelas_con_cultivo ?? 0}`}
+          highlight={(stats.parcelas_con_cultivo ?? 0) > 0}
+        />
+        <StatItem
+          icon="🍂"
+          label="Sin Cultivo"
+          value={`${stats.parcelas_sin_cultivo ?? 0}`}
         />
         <StatItem
           icon="💧"
@@ -160,7 +169,6 @@ export function StatsPanel({ stats }: StatsPanelProps) {
         />
         <StatItem icon="💦" label="Litros hoy" value={`${stats.litros_hoy}L`} />
         <StatItem icon="🚿" label="Riegos hoy" value={`${stats.riegos_hoy}`} />
-        <StatItem icon="📏" label="Superficie" value="15.5 ha" />
       </div>
     </div>
   );
@@ -212,6 +220,7 @@ export function SimulationPanel({ onUpdateData, data }: SimulationPanelProps) {
     { key: 'humedad_cana', label: '🌾 Humedad Caña', min: 0, max: 100 },
     { key: 'humedad_tomate', label: '🍅 Humedad Tomate', min: 0, max: 100 },
     { key: 'humedad_arroz', label: '🍚 Humedad Arroz', min: 0, max: 100 },
+    { key: 'ph_tierra', label: '🧪 pH de la Tierra', min: 4.0, max: 9.5 },
     { key: 'nivel_tanque', label: '🏗️ Nivel Tanque', min: 0, max: 100 },
     { key: 'temperatura', label: '🌡️ Temperatura', min: 15, max: 40 },
     { key: 'humedad_ambiental', label: '🌫️ HR Ambiental', min: 20, max: 100 },
@@ -226,35 +235,44 @@ export function SimulationPanel({ onUpdateData, data }: SimulationPanelProps) {
         </span>
       </h3>
       <p className="text-[10px] text-white/40 mb-3">
-        Ajusta los valores manualmente para simular datos de Tinkercad
+        Ajusta los sensores manualmente para simular lecturas en vivo
       </p>
       <div className="space-y-3">
-        {sliders.map(({ key, label, min, max }) => (
-          <div key={key}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[10px] text-white/60">{label}</label>
-              <span className="text-xs text-white font-mono">
-                {(data[key] ?? 50).toFixed(key === 'temperatura' ? 1 : 0)}
-                {key === 'temperatura' ? '°C' : '%'}
-              </span>
+        {sliders.map(({ key, label, min, max }) => {
+          const val = data[key] ?? (key === 'ph_tierra' ? 6.8 : 50);
+          const formattedVal =
+            key === 'ph_tierra'
+              ? `${val.toFixed(1)} pH`
+              : key === 'temperatura'
+              ? `${val.toFixed(1)}°C`
+              : `${val.toFixed(0)}%`;
+
+          return (
+            <div key={key}>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] text-white/60">{label}</label>
+                <span className="text-xs text-white font-mono font-bold">
+                  {formattedVal}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={key === 'ph_tierra' ? 0.1 : key === 'temperatura' ? 0.5 : 1}
+                value={val}
+                onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none
+                  [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+                  [&::-webkit-slider-thumb]:rounded-full
+                  [&::-webkit-slider-thumb]:bg-white
+                  [&::-webkit-slider-thumb]:shadow-lg
+                  [&::-webkit-slider-thumb]:cursor-pointer"
+              />
             </div>
-            <input
-              type="range"
-              min={min}
-              max={max}
-              step={key === 'temperatura' ? 0.5 : 1}
-              value={data[key] ?? 50}
-              onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
-                [&::-webkit-slider-thumb]:rounded-full
-                [&::-webkit-slider-thumb]:bg-white
-                [&::-webkit-slider-thumb]:shadow-lg
-                [&::-webkit-slider-thumb]:cursor-pointer"
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -267,9 +285,10 @@ export function SimulationPanel({ onUpdateData, data }: SimulationPanelProps) {
 interface HeaderProps {
   backendStatus: boolean;
   checking: boolean;
+  onOpenCreateParcel?: () => void;
 }
 
-export function Header({ backendStatus, checking }: HeaderProps) {
+export function Header({ backendStatus, checking, onOpenCreateParcel }: HeaderProps) {
   return (
     <header className="bg-black/30 border-b border-white/10 backdrop-blur-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -286,6 +305,15 @@ export function Header({ backendStatus, checking }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {onOpenCreateParcel && (
+            <button
+              onClick={onOpenCreateParcel}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md shadow-green-600/30 transition-all flex items-center gap-1.5"
+            >
+              <span>+</span> Nueva Parcela
+            </button>
+          )}
+
           {/* Estado de conexión */}
           <div className="flex items-center gap-1.5">
             <div

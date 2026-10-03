@@ -73,7 +73,7 @@ function TerrainZone({ parcela, position, size, onClick, selected }: TerrainZone
         />
       </mesh>
 
-      {/* Etiqueta del cultivo */}
+      {/* Etiqueta del cultivo y sensores */}
       <Html
         position={[0, 1.5, 0]}
         center
@@ -81,16 +81,25 @@ function TerrainZone({ parcela, position, size, onClick, selected }: TerrainZone
         style={{ pointerEvents: 'none' }}
       >
         <div
-          className={`bg-black/80 text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap backdrop-blur-sm border ${
+          className={`bg-black/85 text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap backdrop-blur-sm border ${
             selected ? 'border-yellow-400' : 'border-white/20'
           }`}
         >
-          <div className="font-bold">
-            {parcela.cultivo.icono} {parcela.parcela.nombre}
+          <div className="font-bold flex items-center gap-1.5">
+            <span>{parcela.tiene_cultivo && parcela.cultivo ? parcela.cultivo.icono : '🍂'}</span>
+            <span>{parcela.parcela.nombre}</span>
+            <span
+              className={`text-[8px] px-1.5 py-0.2 rounded font-normal ${
+                parcela.tiene_cultivo && parcela.cultivo
+                  ? 'bg-emerald-500/30 text-emerald-300'
+                  : 'bg-amber-500/30 text-amber-300'
+              }`}
+            >
+              {parcela.tiene_cultivo && parcela.cultivo ? 'Con cultivo' : 'Sin cultivo'}
+            </span>
           </div>
-          <div className="text-[10px] opacity-80">
-            💧 {parcela.humedad_suelo.toFixed(0)}% | 🌡️{' '}
-            {parcela.temperatura.toFixed(1)}°C
+          <div className="text-[10px] opacity-80 mt-0.5">
+            💧 Suelo: {parcela.humedad_suelo.toFixed(0)}% | 🌡️ {parcela.temperatura.toFixed(1)}°C | 🧪 pH {(parcela.ph_suelo ?? 6.8).toFixed(1)}
           </div>
         </div>
       </Html>
@@ -338,13 +347,23 @@ export default function TerrainScene3D({
         <Environment preset="sunset" />
 
         {/* Terreno por parcela */}
-        {parcelas.map((p) => {
+        {parcelas.map((p, idx) => {
           const zone = p.parcela.zona_3d || 'zona_media';
+          const basePos = zonePositions[zone] || [0, 0, 0];
+          const sameZoneIdx = parcelas.slice(0, idx).filter(
+            (item) => (item.parcela.zona_3d || 'zona_media') === zone
+          ).length;
+          const pos: [number, number, number] = [
+            basePos[0],
+            basePos[1],
+            basePos[2] + sameZoneIdx * 4.5,
+          ];
+
           return (
             <TerrainZone
               key={p.parcela.id}
               parcela={p}
-              position={zonePositions[zone] || [0, 0, 0]}
+              position={pos}
               size={[3, 4]}
               onClick={() => onParcelaSelect?.(p.parcela.id)}
               selected={selectedParcelaId === p.parcela.id}
@@ -353,12 +372,22 @@ export default function TerrainScene3D({
         })}
 
         {/* Válvulas */}
-        {parcelas.map((p) => {
+        {parcelas.map((p, idx) => {
           const zone = p.parcela.zona_3d || 'zona_media';
+          const basePos = valvePositions[zone] || [0, 1, -2];
+          const sameZoneIdx = parcelas.slice(0, idx).filter(
+            (item) => (item.parcela.zona_3d || 'zona_media') === zone
+          ).length;
+          const pos: [number, number, number] = [
+            basePos[0],
+            basePos[1],
+            basePos[2] + sameZoneIdx * 4.5,
+          ];
+
           return (
             <ValveMarker
               key={`valve-${p.parcela.id}`}
-              position={valvePositions[zone] || [0, 1, -2]}
+              position={pos}
               isOpen={p.valvula_estado === 'abierta'}
               label={p.parcela.nombre}
             />

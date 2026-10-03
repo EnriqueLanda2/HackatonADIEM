@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Cultivo } from './cultivo.entity';
+import { Sensor } from './sensor.entity';
 
 @Entity('parcelas')
 export class Parcela {
@@ -9,12 +10,18 @@ export class Parcela {
   @Column({ length: 150 })
   nombre: string;
 
-  @ManyToOne(() => Cultivo)
-  @JoinColumn({ name: 'cultivo_id' })
-  cultivo: Cultivo;
+  @Column({ default: true })
+  tiene_cultivo: boolean;
 
-  @Column('uuid')
-  cultivo_id: string;
+  @ManyToOne(() => Cultivo, { nullable: true })
+  @JoinColumn({ name: 'cultivo_id' })
+  cultivo: Cultivo | null;
+
+  @Column('uuid', { nullable: true })
+  cultivo_id: string | null;
+
+  @OneToMany(() => Sensor, (sensor) => sensor.parcela)
+  sensores: Sensor[];
 
   @Column('decimal', { precision: 10, scale: 7, nullable: true })
   latitud: number;

@@ -6,6 +6,8 @@ import { useDashboard, useBackendStatus } from '@/hooks/useDashboard';
 import { api } from '@/lib/api';
 import ParcelaCard from '@/components/dashboard/ParcelaCard';
 import AlertsPanel from '@/components/dashboard/AlertsPanel';
+import CreateParcelModal from '@/components/dashboard/CreateParcelModal';
+import { CreateParcelaDTO } from '@/types';
 import {
   WeatherPanel,
   TankPanel,
@@ -35,6 +37,17 @@ export default function DashboardPage() {
   const { isAvailable: backendAvailable, checking: backendChecking } = useBackendStatus();
   const [selectedParcelaId, setSelectedParcelaId] = useState<string | null>(null);
   const [showSimulation, setShowSimulation] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [cropFilter, setCropFilter] = useState<'todos' | 'con_cultivo' | 'sin_cultivo'>('todos');
+
+  // Handler para crear parcela
+  const handleCreateParcel = useCallback(
+    async (dto: CreateParcelaDTO) => {
+      await api.createParcela(dto);
+      refresh();
+    },
+    [refresh]
+  );
 
   // Handler para toggle de válvula
   const handleToggleValve = useCallback(async (valvulaId: string) => {
@@ -113,9 +126,19 @@ export default function DashboardPage() {
 
   const simData = api.getSimulationData();
 
+  const filteredParcelas = data.parcelas.filter((p) => {
+    if (cropFilter === 'con_cultivo') return p.tiene_cultivo;
+    if (cropFilter === 'sin_cultivo') return !p.tiene_cultivo;
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-green-950 to-gray-900">
-      <Header backendStatus={backendAvailable} checking={backendChecking} />
+      <Header
+        backendStatus={backendAvailable}
+        checking={backendChecking}
+        onOpenCreateParcel={() => setIsCreateModalOpen(true)}
+      />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Título de sección */}
@@ -129,6 +152,12 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-green-600/30 text-green-300 border border-green-500/30 hover:bg-green-600/40 transition-colors flex items-center gap-1 font-semibold"
+            >
+              <span>+</span> Crear Parcela
+            </button>
             <button
               onClick={() => setShowSimulation(!showSimulation)}
               className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
@@ -161,25 +190,78 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* Columna izquierda: Parcelas */}
           <div className="lg:col-span-2 space-y-4">
-            <h2 className="text-white font-semibold flex items-center gap-2">
-              🌱 Parcelas Monitoreadas
-              <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                {data.estadisticas.parcelas_activas} activas
-              </span>
-            </h2>
+            {/* Header de sección con pestañas de filtro y botón de creación */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h2 className="text-white font-semibold flex items-center gap-2">
+                🌱 Parcelas Monitoreadas
+                <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-mono">
+                  {data.estadisticas.parcelas_activas} activas
+                </span>
+              </h2>
 
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Filtro: Todas / Con Cultivo / Sin Cultivo */}
+                <div className="bg-black/40 p-0.5 rounded-lg border border-white/10 flex text-xs">
+                  <button
+                    onClick={() => setCropFilter('todos')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${
+                      cropFilter === 'todos'
+                        ? 'bg-white/20 text-white font-medium'
+                        : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    Todas ({data.parcelas.length})
+                  </button>
+                  <button
+                    onClick={() => setCropFilter('con_cultivo')}
+                    className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                      cropFilter === 'con_cultivo'
+                        ? 'bg-emerald-500/30 text-emerald-300 font-medium'
+                        : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    <span>🌱</span> Con Cultivo ({data.parcelas.filter((p) => p.tiene_cultivo).length})
+                  </button>
+                  <button
+                    onClick={() => setCropFilter('sin_cultivo')}
+                    className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                      cropFilter === 'sin_cultivo'
+                        ? 'bg-amber-500/30 text-amber-300 font-medium'
+                        : 'text-white/50 hover:text-white'
+                    }`}
+                  >
+                    <span>🍂</span> Sin Cultivo ({data.parcelas.filter((p) => !p.tiene_cultivo).length})
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md shadow-green-600/30 transition-all flex items-center gap-1"
+                >
+                  <span>+</span> Nueva Parcela
+                </button>
+              </div>
+            </div>
+
+            {/* Listado de parcelas filtradas */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {data.parcelas.map((pd) => (
-                <ParcelaCard
-                  key={pd.parcela.id}
-                  data={pd}
-                  selected={selectedParcelaId === pd.parcela.id}
-                  onSelect={() => setSelectedParcelaId(pd.parcela.id)}
-                  onToggleValve={() =>
-                    handleToggleValve(pd.parcela.id)
-                  }
-                />
-              ))}
+              {filteredParcelas.length === 0 ? (
+                <div className="col-span-full py-8 text-center bg-white/5 rounded-xl border border-white/10 text-white/50 text-xs">
+                  No se encontraron parcelas con este filtro.
+                </div>
+              ) : (
+                filteredParcelas.map((pd) => (
+                  <ParcelaCard
+                    key={pd.parcela.id}
+                    data={pd}
+                    selected={selectedParcelaId === pd.parcela.id}
+                    onSelect={() => setSelectedParcelaId(pd.parcela.id)}
+                    onToggleValve={() =>
+                      handleToggleValve(pd.parcela.id)
+                    }
+                  />
+                ))
+              )}
             </div>
 
             {/* Alertas */}
@@ -223,6 +305,13 @@ export default function DashboardPage() {
           </p>
         </footer>
       </main>
+
+      {/* Modal para Crear Parcela */}
+      <CreateParcelModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateParcel}
+      />
     </div>
   );
 }

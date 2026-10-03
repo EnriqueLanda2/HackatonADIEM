@@ -14,6 +14,7 @@ import {
   PronosticoClima,
   DatosSimulacion,
   ParcelaDashboard,
+  CreateParcelaDTO,
 } from '@/types';
 import { CULTIVOS_MORELOS } from './crop-profiles';
 
@@ -63,13 +64,18 @@ let mockSimulationData: DatosSimulacion = {
   humedad_cana: 62,
   humedad_tomate: 48,
   humedad_arroz: 88,
+  humedad_descanso: 32,
   nivel_tanque: 72,
   temperatura: 27.5,
   humedad_ambiental: 65,
+  ph_tierra: 6.8,
   valvula_cana: false,
   valvula_tomate: true,
   valvula_arroz: false,
 };
+
+// Parcelas creadas por el usuario en modo demo
+const mockCustomParcels: ParcelaDashboard[] = [];
 
 // Simulación progresiva - los valores cambian ligeramente cada consulta
 function updateMockData(): DatosSimulacion {
@@ -79,12 +85,15 @@ function updateMockData(): DatosSimulacion {
   };
 
   mockSimulationData = {
+    ...mockSimulationData,
     humedad_cana: vary(mockSimulationData.humedad_cana, 4, 20, 95),
     humedad_tomate: vary(mockSimulationData.humedad_tomate, 5, 15, 85),
     humedad_arroz: vary(mockSimulationData.humedad_arroz, 3, 60, 100),
+    humedad_descanso: vary(mockSimulationData.humedad_descanso ?? 32, 2, 10, 60),
     nivel_tanque: vary(mockSimulationData.nivel_tanque, 2, 5, 100),
     temperatura: vary(mockSimulationData.temperatura, 1.5, 18, 38),
     humedad_ambiental: vary(mockSimulationData.humedad_ambiental, 3, 30, 95),
+    ph_tierra: vary(mockSimulationData.ph_tierra ?? 6.8, 0.1, 5.0, 8.5),
     valvula_cana: mockSimulationData.humedad_cana < 55,
     valvula_tomate: mockSimulationData.humedad_tomate < 45,
     valvula_arroz: mockSimulationData.humedad_arroz < 80,
@@ -99,11 +108,12 @@ function generateMockDashboard(): DashboardSummary {
   const cultivoTomate = CULTIVOS_MORELOS.tomate_rojo;
   const cultivoArroz = CULTIVOS_MORELOS.arroz;
 
-  const parcelas: ParcelaDashboard[] = [
+  const baseParcelas: ParcelaDashboard[] = [
     {
       parcela: {
         id: 'parcela-1',
         nombre: 'Parcela Norte - Caña',
+        tiene_cultivo: true,
         cultivo_id: 'cana-azucar',
         latitud: 18.9186,
         longitud: -99.235,
@@ -114,10 +124,24 @@ function generateMockDashboard(): DashboardSummary {
         activa: true,
         modo_operacion: 'automatico',
         propietario: 'Ejido Morelos Norte',
+        sensores_activos: {
+          humedad_suelo: true,
+          humedad_ambiental: true,
+          temperatura: true,
+          ph_suelo: true,
+        },
       },
+      tiene_cultivo: true,
       humedad_suelo: data.humedad_cana,
       temperatura: data.temperatura,
       humedad_ambiental: data.humedad_ambiental,
+      ph_suelo: +(data.ph_tierra).toFixed(1),
+      sensores_activos: {
+        humedad_suelo: true,
+        humedad_ambiental: true,
+        temperatura: true,
+        ph_suelo: true,
+      },
       valvula_estado: data.valvula_cana ? 'abierta' : 'cerrada',
       valvula_modo: 'automatico',
       cultivo: cultivoCana,
@@ -126,6 +150,7 @@ function generateMockDashboard(): DashboardSummary {
       parcela: {
         id: 'parcela-2',
         nombre: 'Parcela Centro - Tomate',
+        tiene_cultivo: true,
         cultivo_id: 'tomate-rojo',
         latitud: 18.91,
         longitud: -99.228,
@@ -136,10 +161,24 @@ function generateMockDashboard(): DashboardSummary {
         activa: true,
         modo_operacion: 'automatico',
         propietario: 'Cooperativa Jiutepec',
+        sensores_activos: {
+          humedad_suelo: true,
+          humedad_ambiental: true,
+          temperatura: true,
+          ph_suelo: true,
+        },
       },
+      tiene_cultivo: true,
       humedad_suelo: data.humedad_tomate,
       temperatura: data.temperatura,
       humedad_ambiental: data.humedad_ambiental,
+      ph_suelo: +(data.ph_tierra - 0.6).toFixed(1),
+      sensores_activos: {
+        humedad_suelo: true,
+        humedad_ambiental: true,
+        temperatura: true,
+        ph_suelo: true,
+      },
       valvula_estado: data.valvula_tomate ? 'abierta' : 'cerrada',
       valvula_modo: 'automatico',
       cultivo: cultivoTomate,
@@ -148,6 +187,7 @@ function generateMockDashboard(): DashboardSummary {
       parcela: {
         id: 'parcela-3',
         nombre: 'Parcela Sur - Arroz',
+        tiene_cultivo: true,
         cultivo_id: 'arroz',
         latitud: 18.902,
         longitud: -99.22,
@@ -158,15 +198,69 @@ function generateMockDashboard(): DashboardSummary {
         activa: true,
         modo_operacion: 'automatico',
         propietario: 'Ejido Morelos Sur',
+        sensores_activos: {
+          humedad_suelo: true,
+          humedad_ambiental: true,
+          temperatura: true,
+          ph_suelo: true,
+        },
       },
+      tiene_cultivo: true,
       humedad_suelo: data.humedad_arroz,
       temperatura: data.temperatura,
       humedad_ambiental: data.humedad_ambiental,
+      ph_suelo: +(data.ph_tierra + 0.4).toFixed(1),
+      sensores_activos: {
+        humedad_suelo: true,
+        humedad_ambiental: true,
+        temperatura: true,
+        ph_suelo: true,
+      },
       valvula_estado: data.valvula_arroz ? 'abierta' : 'cerrada',
       valvula_modo: 'automatico',
       cultivo: cultivoArroz,
     },
+    {
+      parcela: {
+        id: 'parcela-4',
+        nombre: 'Parcela Poniente - En Descanso',
+        tiene_cultivo: false,
+        cultivo_id: null,
+        latitud: 18.915,
+        longitud: -99.231,
+        altitud_msnm: 1490,
+        superficie_hectareas: 3.2,
+        zona_3d: 'zona_media',
+        color_base: '#8D6E63',
+        activa: true,
+        modo_operacion: 'manual',
+        propietario: 'Cooperativa Jiutepec',
+        notas: 'Terreno en descanso y rotación de cultivo. Suelo enriquecido con abono orgánico.',
+        sensores_activos: {
+          humedad_suelo: true,
+          humedad_ambiental: true,
+          temperatura: true,
+          ph_suelo: true,
+        },
+      },
+      tiene_cultivo: false,
+      cultivo: null,
+      humedad_suelo: data.humedad_descanso ?? 32,
+      temperatura: data.temperatura,
+      humedad_ambiental: data.humedad_ambiental,
+      ph_suelo: +(data.ph_tierra - 0.3).toFixed(1),
+      sensores_activos: {
+        humedad_suelo: true,
+        humedad_ambiental: true,
+        temperatura: true,
+        ph_suelo: true,
+      },
+      valvula_estado: 'cerrada',
+      valvula_modo: 'manual',
+    },
   ];
+
+  const parcelas: ParcelaDashboard[] = [...baseParcelas, ...mockCustomParcels];
 
   const alertas: Alerta[] = [];
 
@@ -254,8 +348,10 @@ function generateMockDashboard(): DashboardSummary {
       },
     ],
     estadisticas: {
-      total_parcelas: 3,
-      parcelas_activas: 3,
+      total_parcelas: parcelas.length,
+      parcelas_activas: parcelas.filter((p) => p.parcela.activa).length,
+      parcelas_con_cultivo: parcelas.filter((p) => p.tiene_cultivo).length,
+      parcelas_sin_cultivo: parcelas.filter((p) => !p.tiene_cultivo).length,
       valvulas_abiertas: parcelas.filter((p) => p.valvula_estado === 'abierta').length,
       alertas_sin_leer: alertas.filter((a) => !a.leida).length,
       litros_hoy: Math.round(1200 + Math.random() * 800),
@@ -295,6 +391,74 @@ export const api = {
     }
     const dashboard = generateMockDashboard();
     return dashboard.parcelas.map((p) => p.parcela);
+  },
+
+  // Crear Parcela
+  async createParcela(dto: CreateParcelaDTO): Promise<ParcelaDashboard> {
+    const backendUp = await checkBackend();
+    let backendResult: any = null;
+    if (backendUp) {
+      try {
+        backendResult = await apiPost('/parcels', dto);
+      } catch (err) {
+        console.warn('Backend /parcels POST falló, guardando localmente:', err);
+      }
+    }
+
+    // Resolver cultivo si tiene_cultivo
+    let cultivo: Cultivo | null = null;
+    if (dto.tiene_cultivo && dto.cultivo_id) {
+      cultivo =
+        CULTIVOS_MORELOS[dto.cultivo_id] ||
+        Object.values(CULTIVOS_MORELOS).find((c) => c.id === dto.cultivo_id) ||
+        null;
+    }
+
+    const newId = backendResult?.id || `parcela-${Date.now()}`;
+    const newParcela: Parcela = {
+      id: newId,
+      nombre: dto.nombre,
+      tiene_cultivo: dto.tiene_cultivo,
+      cultivo_id: dto.tiene_cultivo ? (cultivo?.id ?? dto.cultivo_id ?? null) : null,
+      cultivo: cultivo,
+      latitud: 18.912,
+      longitud: -99.230,
+      altitud_msnm: dto.zona_3d === 'zona_alta' ? 1520 : dto.zona_3d === 'zona_media' ? 1480 : 1420,
+      superficie_hectareas: dto.superficie_hectareas,
+      zona_3d: dto.zona_3d,
+      color_base: dto.color_base || (dto.tiene_cultivo ? '#4CAF50' : '#8D6E63'),
+      activa: true,
+      modo_operacion: dto.modo_operacion,
+      propietario: dto.propietario,
+      notas: dto.notas,
+      sensores_activos: {
+        humedad_suelo: dto.sensores_config.humedad_suelo,
+        humedad_ambiental: dto.sensores_config.humedad_ambiental,
+        temperatura: dto.sensores_config.temperatura,
+        ph_suelo: dto.sensores_config.ph_suelo,
+      },
+    };
+
+    const newDashboardItem: ParcelaDashboard = {
+      parcela: newParcela,
+      tiene_cultivo: dto.tiene_cultivo,
+      cultivo: cultivo,
+      humedad_suelo: dto.sensores_config.humedad_suelo ? dto.sensores_config.humedad_suelo_valor : 45,
+      temperatura: dto.sensores_config.temperatura ? dto.sensores_config.temperatura_valor : 26,
+      humedad_ambiental: dto.sensores_config.humedad_ambiental ? dto.sensores_config.humedad_ambiental_valor : 60,
+      ph_suelo: dto.sensores_config.ph_suelo ? dto.sensores_config.ph_suelo_valor : 6.8,
+      sensores_activos: {
+        humedad_suelo: dto.sensores_config.humedad_suelo,
+        humedad_ambiental: dto.sensores_config.humedad_ambiental,
+        temperatura: dto.sensores_config.temperatura,
+        ph_suelo: dto.sensores_config.ph_suelo,
+      },
+      valvula_estado: 'cerrada',
+      valvula_modo: dto.modo_operacion,
+    };
+
+    mockCustomParcels.push(newDashboardItem);
+    return newDashboardItem;
   },
 
   // Válvulas
