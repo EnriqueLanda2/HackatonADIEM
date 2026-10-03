@@ -10,10 +10,10 @@ import { ParcelaDashboard, DronRiego } from '@/types';
 // Semáforo y Constantes
 // =============================================================================
 export const HUMIDITY_COLORS = {
-  critico: '#ef4444',   // <35% Rojo
-  bajo: '#f59e0b',      // 35-50% Amarillo
-  optimo: '#22c55e',    // 50-75% Verde
-  saturado: '#3b82f6',  // >75% Azul
+  critico: '#925E06',   // <35% Golden Brown
+  bajo: '#EDE383',      // 35-50% Flax
+  optimo: '#8DA432',    // 50-75% Apple Green
+  saturado: '#365004',  // >75% Dark Green
 };
 
 export function getStatusFromHumidity(hum: number) {
@@ -312,17 +312,17 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       </mesh>
 
       {/* ===================================================================== */}
-      {/* ETIQUETA FLOTANTE DISCRETA (MINIMALISTA, NO OBSTRUYE LA VISTA 3D)     */}
+      {/* ETIQUETA FLOTANTE DISCRETA CON PALETA DE MARCA                       */}
       {/* ===================================================================== */}
       <Html position={[0, 2.3, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-zinc-950/80 backdrop-blur-md px-3 py-1 rounded-full text-xs whitespace-nowrap border border-white/10 shadow-lg flex items-center gap-2">
+        <div className="bg-[#131d08]/90 backdrop-blur-md px-3 py-1 rounded-full text-xs whitespace-nowrap border border-[#8DA432]/35 shadow-lg flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-          <span className="font-semibold text-zinc-100 text-[11px]">{parcela.parcela.nombre}</span>
-          <span className="text-zinc-600 text-[10px]">·</span>
-          <span className="font-bold text-sky-400 text-[11px]">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
+          <span className="font-semibold text-[#FFFCE9] text-[11px]">{parcela.parcela.nombre}</span>
+          <span className="text-[#8DA432]/50 text-[10px]">·</span>
+          <span className="font-bold text-[#EDE383] text-[11px]">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
           {isOpen && (
-            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[10px] text-[#8DA432] font-semibold flex items-center gap-1 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8DA432]" />
               Regando
             </span>
           )}
@@ -551,7 +551,7 @@ function CisternAndPiping({ nivel }: { nivel: number }) {
       </mesh>
 
       <Html position={[0, 1.35, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-black/90 text-white px-3 py-1.2 rounded-xl text-xs font-semibold whitespace-nowrap border border-white/15 shadow-xl backdrop-blur-md">
+        <div className="bg-[#131d08]/90 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
           🚰 Cisterna: {nivel.toFixed(0)}%
         </div>
       </Html>
@@ -590,13 +590,13 @@ export default function TerrainScene3D({
   selectedParcelaId,
 }: TerrainScene3DProps) {
   return (
-    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#18181b]">
+    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#101807]">
       <Canvas
         shadows
         camera={{ position: [0, 9.8, 10.2], fov: 44 }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#18181b']} />
+        <color attach="background" args={['#101807']} />
 
         <ambientLight intensity={0.75} />
         <directionalLight
@@ -605,18 +605,18 @@ export default function TerrainScene3D({
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
-        <pointLight position={[-6, 6, -3]} intensity={0.4} color="#60a5fa" />
+        <pointLight position={[-6, 6, -3]} intensity={0.4} color="#EDE383" />
 
         {/* Suelo base de la maqueta agrícola */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.16, 0]} receiveShadow>
           <planeGeometry args={[18, 10]} />
-          <meshStandardMaterial color="#27272a" roughness={0.95} />
+          <meshStandardMaterial color="#1a270a" roughness={0.95} />
         </mesh>
 
         {/* Caminos de grava entre parcelas */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.15, 0]} receiveShadow>
           <planeGeometry args={[18, 1.2]} />
-          <meshStandardMaterial color="#3f3f46" roughness={0.9} />
+          <meshStandardMaterial color="#365004" roughness={0.9} />
         </mesh>
 
         {/* Renderizado de parcelas dinámicas */}

@@ -1,14 +1,28 @@
 @import "tailwindcss";
 
-:root {
-  --background: #111827;
-  --foreground: #f9fafb;
+@theme {
+  --color-darkgreen: #365004;
+  --color-applegreen: #8DA432;
+  --color-flax: #EDE383;
+  --color-goldenbrown: #925E06;
+  --color-creme: #FFFCE9;
 }
 
-/* Scrollbar styling */
+:root {
+  --color-darkgreen: #365004;
+  --color-applegreen: #8DA432;
+  --color-flax: #EDE383;
+  --color-goldenbrown: #925E06;
+  --color-creme: #FFFCE9;
+
+  --background: #0f1606;
+  --foreground: #FFFCE9;
+}
+
+/* Scrollbar styling con paleta orgánica */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: rgba(141, 164, 50, 0.25) transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -20,7 +34,7 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(141, 164, 50, 0.25);
   border-radius: 4px;
 }
 
@@ -39,7 +53,7 @@ canvas {
   touch-action: none;
 }
 
-/* Range slider custom */
+/* Range slider custom con paleta */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -48,22 +62,23 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: white;
+  background: #EDE383;
   cursor: pointer;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 6px rgba(54, 80, 4, 0.8);
+  border: 2px solid #365004;
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: white;
+  background: #EDE383;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  border: 2px solid #365004;
+  box-shadow: 0 0 6px rgba(54, 80, 4, 0.8);
 }
 
 /* Mobile-first responsive fixes */
@@ -74,7 +89,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #0f1606;
+  color: #FFFCE9;
   font-family: Arial, Helvetica, sans-serif;
 }

@@ -19,27 +19,31 @@ export default function ParcelaCard({
   const hasCrop = Boolean(parcela.tiene_cultivo && cultivo);
   const isOpen = valvula_estado === 'abierta';
 
-  // Semáforo discreto de Humedad
+  // Semáforo con la paleta de la marca:
+  // Óptimo: Apple Green (#8DA432)
+  // Bajo: Flax (#EDE383)
+  // Crítico: Golden Brown (#925E06)
+  // Saturado: Dark Green (#365004) / Apple Green
   let statusText = 'Óptimo';
-  let dotColor = 'bg-emerald-400';
-  let badgeClasses = 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300';
-  let barColor = 'from-emerald-500 to-teal-400';
+  let dotColor = 'bg-[#8DA432]';
+  let badgeClasses = 'bg-[#365004]/50 border-[#8DA432]/50 text-[#EDE383]';
+  let barColor = 'from-[#365004] via-[#8DA432] to-[#EDE383]';
 
   if (humedad_suelo < 35) {
     statusText = 'Crítico';
-    dotColor = 'bg-rose-400';
-    badgeClasses = 'bg-rose-950/40 border-rose-500/30 text-rose-300';
-    barColor = 'from-rose-500 to-red-400';
+    dotColor = 'bg-[#925E06]';
+    badgeClasses = 'bg-[#925E06]/30 border-[#925E06]/70 text-[#FFFCE9]';
+    barColor = 'from-[#925E06] to-[#EDE383]';
   } else if (humedad_suelo < 50) {
     statusText = 'Bajo';
-    dotColor = 'bg-amber-400';
-    badgeClasses = 'bg-amber-950/40 border-amber-500/30 text-amber-300';
-    barColor = 'from-amber-500 to-yellow-400';
+    dotColor = 'bg-[#EDE383]';
+    badgeClasses = 'bg-[#925E06]/20 border-[#EDE383]/50 text-[#EDE383]';
+    barColor = 'from-[#925E06] to-[#8DA432]';
   } else if (humedad_suelo >= 85) {
     statusText = 'Saturado (Lleno)';
-    dotColor = 'bg-sky-400';
-    badgeClasses = 'bg-sky-950/40 border-sky-500/30 text-sky-300';
-    barColor = 'from-blue-500 to-sky-400';
+    dotColor = 'bg-[#8DA432]';
+    badgeClasses = 'bg-[#365004]/80 border-[#8DA432]/60 text-[#FFFCE9]';
+    barColor = 'from-[#8DA432] to-[#FFFCE9]';
   }
 
   const cropTitle = hasCrop && cultivo ? cultivo.nombre : (parcela.nombre || 'Parcela');
@@ -49,10 +53,10 @@ export default function ParcelaCard({
   return (
     <div
       onClick={onSelect}
-      className={`rounded-xl px-4 py-3 border transition-all cursor-pointer bg-[#18181b]/80 backdrop-blur-sm shadow-sm flex flex-col gap-2.5 ${
+      className={`rounded-xl px-4 py-3 border transition-all cursor-pointer bg-[#131d08]/85 backdrop-blur-sm shadow-sm flex flex-col gap-2.5 ${
         selected
-          ? 'border-emerald-500/60 ring-1 ring-emerald-500/30 bg-[#1c1c20]'
-          : 'border-white/[0.08] hover:border-white/20'
+          ? 'border-[#EDE383] ring-1 ring-[#EDE383]/40 bg-[#1a270a]'
+          : 'border-[#8DA432]/20 hover:border-[#8DA432]/45'
       }`}
     >
       {/* Fila 1: Título discreto, icono y badge semáforo */}
@@ -60,10 +64,10 @@ export default function ParcelaCard({
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base select-none shrink-0">{cropIcon}</span>
           <div className="min-w-0">
-            <h3 className="font-semibold text-zinc-100 text-sm tracking-tight truncate">
+            <h3 className="font-semibold text-[#FFFCE9] text-sm tracking-tight truncate">
               {cropTitle}
             </h3>
-            <span className="text-[10px] text-zinc-500 font-medium">
+            <span className="text-[10px] text-[#EDE383]/70 font-medium">
               {parcela.nombre || `Zona ${parcela.zona_3d}`}
             </span>
           </div>
@@ -71,8 +75,8 @@ export default function ParcelaCard({
 
         <div className="flex items-center gap-1.5 shrink-0">
           {isOpen && (
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-[#EDE383] bg-[#365004]/80 px-2 py-0.5 rounded-full border border-[#8DA432]/40 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8DA432]" />
               Regando
             </span>
           )}
@@ -84,7 +88,7 @@ export default function ParcelaCard({
       </div>
 
       {/* Fila 2: Micro barra de progreso de humedad */}
-      <div className="w-full bg-zinc-800/80 h-1.5 rounded-full overflow-hidden">
+      <div className="w-full bg-[#0a1004] h-1.5 rounded-full overflow-hidden border border-[#8DA432]/10">
         <div
           className={`h-full transition-all duration-700 bg-gradient-to-r ${barColor}`}
           style={{ width: `${Math.min(100, Math.max(0, humedad_suelo))}%` }}
@@ -92,18 +96,18 @@ export default function ParcelaCard({
       </div>
 
       {/* Fila 3: Fila horizontal de sensores discretos + Botón de Riego */}
-      <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#8DA432]/10">
         {/* Lecturas en formato minimalista */}
-        <div className="flex items-center gap-2.5 text-[11px] text-zinc-400 font-mono">
-          <span title="Temperatura del suelo" className="text-zinc-300">
+        <div className="flex items-center gap-2.5 text-[11px] text-[#EDE383]/80 font-mono">
+          <span title="Temperatura del suelo" className="text-[#FFFCE9]">
             🌡️ {temperatura.toFixed(1)}°C
           </span>
-          <span className="text-zinc-600">·</span>
-          <span title="pH del suelo" className="text-emerald-400 font-medium">
+          <span className="text-[#8DA432]/50">·</span>
+          <span title="pH del suelo" className="text-[#EDE383] font-medium">
             🧪 {phVal.toFixed(1)}
           </span>
-          <span className="text-zinc-600">·</span>
-          <span title="Humedad relativa del aire" className="text-sky-300">
+          <span className="text-[#8DA432]/50">·</span>
+          <span title="Humedad relativa del aire" className="text-[#FFFCE9]/90">
             🌫️ {humedad_ambiental.toFixed(0)}%
           </span>
         </div>
@@ -116,13 +120,13 @@ export default function ParcelaCard({
           }}
           className={`text-[11px] px-3 py-1 rounded-lg border font-semibold transition-all shrink-0 flex items-center gap-1.5 active:scale-95 ${
             isOpen
-              ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 hover:bg-rose-500/30'
-              : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25'
+              ? 'bg-[#925E06]/30 border-[#925E06] text-[#EDE383] hover:bg-[#925E06]/40'
+              : 'bg-[#8DA432]/25 border-[#8DA432]/50 text-[#FFFCE9] hover:bg-[#8DA432]/35 shadow-sm shadow-[#365004]/30'
           }`}
         >
           {isOpen ? (
             <>
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EDE383] animate-pulse" />
               Detener
             </>
           ) : (

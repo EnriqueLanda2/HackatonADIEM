@@ -34,7 +34,7 @@ const TerrainScene3D = dynamic(
 );
 
 export default function DashboardPage() {
-  const { data, loading, error, refresh } = useDashboard(1200);
+  const { data, loading, error, refresh } = useDashboard(3000);
   const { isAvailable: backendAvailable, checking: backendChecking } = useBackendStatus();
   const [selectedParcelaId, setSelectedParcelaId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -84,12 +84,6 @@ export default function DashboardPage() {
     },
     [refresh]
   );
-
-  // Recarga de cisterna desde pozo/red
-  const handleToggleRecargaCisterna = useCallback(() => {
-    api.toggleCisternaLlave();
-    refresh();
-  }, [refresh]);
 
   // Descartar alerta
   const handleDismissAlert = useCallback(
@@ -143,7 +137,7 @@ export default function DashboardPage() {
   const dronData = data.dron || api.getDronState();
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white selection:bg-emerald-500/20 antialiased font-sans">
+    <div className="min-h-screen bg-[#0f1606] text-[#FFFCE9] selection:bg-[#8DA432]/30 selection:text-[#FFFCE9] antialiased font-sans">
       {/* Barra de Navegación Superior con botón de Nueva Parcela */}
       <Header
         backendStatus={backendAvailable}
@@ -158,15 +152,15 @@ export default function DashboardPage() {
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div>
-            <div className="text-zinc-400 text-sm mb-1.5 font-normal">Parcelas activas</div>
-            <div className="text-3xl font-semibold tracking-tight">
+            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Parcelas activas</div>
+            <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.parcelas_activas} / {stats.total_parcelas}
             </div>
           </div>
 
           <div>
-            <div className="text-zinc-400 text-sm mb-1.5 font-normal">Válvulas abiertas</div>
-            <div className="text-3xl font-semibold tracking-tight">
+            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Válvulas abiertas</div>
+            <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.valvulas_abiertas}
             </div>
           </div>
@@ -174,20 +168,20 @@ export default function DashboardPage() {
           <div
             className={`transition-colors ${
               stats.alertas_sin_leer > 0
-                ? 'bg-[#2a0e12] border border-rose-950/60 rounded-xl px-4 py-3 -my-3'
+                ? 'bg-[#925E06]/25 border border-[#925E06]/50 rounded-xl px-4 py-3 -my-3'
                 : ''
             }`}
           >
             <div
               className={`text-sm mb-1.5 font-normal ${
-                stats.alertas_sin_leer > 0 ? 'text-rose-400' : 'text-zinc-400'
+                stats.alertas_sin_leer > 0 ? 'text-[#EDE383]' : 'text-[#EDE383]/80'
               }`}
             >
               Alertas
             </div>
             <div
               className={`text-3xl font-semibold tracking-tight ${
-                stats.alertas_sin_leer > 0 ? 'text-rose-400' : 'text-white'
+                stats.alertas_sin_leer > 0 ? 'text-[#EDE383]' : 'text-[#FFFCE9]'
               }`}
             >
               {stats.alertas_sin_leer}
@@ -195,8 +189,8 @@ export default function DashboardPage() {
           </div>
 
           <div>
-            <div className="text-zinc-400 text-sm mb-1.5 font-normal">Litros hoy</div>
-            <div className="text-3xl font-semibold tracking-tight">
+            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Litros hoy</div>
+            <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.litros_hoy.toLocaleString('es-MX')}
             </div>
           </div>
@@ -208,12 +202,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
           
           {/* COLUMNA IZQUIERDA: Tarjetas de Información de Sensores por Parcela */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="lg:col-span-5 flex flex-col gap-3.5">
             <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+              <h2 className="text-sm font-semibold text-[#EDE383] uppercase tracking-wider">
                 Monitoreo de Sensores
               </h2>
-              <span className="text-xs text-zinc-500 font-medium">
+              <span className="text-xs text-[#EDE383]/60 font-medium">
                 {data.parcelas.length} Parcelas en Morelos
               </span>
             </div>
@@ -233,9 +227,9 @@ export default function DashboardPage() {
           <div className="lg:col-span-7 flex flex-col gap-6">
             
             {/* Tarjeta de la Vista del Terreno 3D */}
-            <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 flex flex-col shadow-md">
+            <div className="bg-[#131d08]/85 rounded-2xl p-5 border border-[#8DA432]/20 flex flex-col shadow-md">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-white font-semibold text-base">
+                <div className="flex items-center gap-2 text-[#FFFCE9] font-semibold text-base">
                   <svg
                     width="18"
                     height="18"
@@ -245,7 +239,7 @@ export default function DashboardPage() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-emerald-400"
+                    className="text-[#8DA432]"
                   >
                     <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" />
                     <path d="M9 3.2v15.6" />
@@ -253,7 +247,7 @@ export default function DashboardPage() {
                   </svg>
                   <span>Vista del terreno 3D</span>
                 </div>
-                <span className="text-[11px] text-zinc-500 font-medium">
+                <span className="text-[11px] text-[#EDE383]/60 font-medium">
                   Rotación 360° · Dron y Telemetría en vivo
                 </span>
               </div>
@@ -284,12 +278,7 @@ export default function DashboardPage() {
               <WeatherWidgetIOS clima={climaDisplay} />
 
               {/* Cisterna Principal */}
-              {data.tanques[0] && (
-                <TankPanel
-                  tanque={data.tanques[0]}
-                  onToggleRecarga={handleToggleRecargaCisterna}
-                />
-              )}
+              {data.tanques[0] && <TankPanel tanque={data.tanques[0]} />}
             </div>
 
           </div>

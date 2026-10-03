@@ -3,7 +3,7 @@
 import { PronosticoClima, TanqueAgua } from '@/types';
 
 // =============================================================================
-// Header / Barra Superior
+// Header / Barra Superior con paleta de marca
 // =============================================================================
 interface HeaderProps {
   backendStatus: boolean;
@@ -18,29 +18,18 @@ export function Header({
   onOpenCreateParcel,
 }: HeaderProps) {
   return (
-    <header className="bg-[#111111] border-b border-white/5 py-4">
+    <header className="bg-[#131d08]/95 border-b border-[#8DA432]/25 py-4 backdrop-blur-md sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo y Nombre */}
         <div className="flex items-center gap-3">
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-emerald-500"
-          >
-            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-          </svg>
+          <div className="w-9 h-9 rounded-xl bg-[#365004]/80 border border-[#8DA432]/40 flex items-center justify-center text-xl shadow-inner shadow-[#8DA432]/20">
+            🌱
+          </div>
           <div className="flex items-baseline gap-2">
-            <h1 className="text-white font-bold text-xl tracking-tight">
+            <h1 className="text-[#FFFCE9] font-bold text-xl tracking-tight">
               Riego Inteligente
             </h1>
-            <span className="text-zinc-500 text-base font-normal">Morelos</span>
+            <span className="text-[#EDE383]/70 text-sm font-medium">Morelos</span>
           </div>
         </div>
 
@@ -49,7 +38,7 @@ export function Header({
           {onOpenCreateParcel && (
             <button
               onClick={onOpenCreateParcel}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full shadow-md shadow-emerald-900/30 transition-all flex items-center gap-1.5"
+              className="bg-[#8DA432] hover:bg-[#8DA432]/90 text-[#0f1706] text-xs font-bold px-3.5 py-1.5 rounded-full shadow-md shadow-[#365004]/40 transition-all flex items-center gap-1.5 active:scale-95"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -59,13 +48,13 @@ export function Header({
             </button>
           )}
 
-          <span className="text-xs px-3 py-1 rounded-full font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+          <span className="text-xs px-3 py-1 rounded-full font-semibold bg-[#365004]/50 text-[#EDE383] border border-[#8DA432]/40">
             {backendStatus ? 'En línea' : 'Modo demo'}
           </span>
 
           <button
             onClick={onRefresh}
-            className="flex items-center gap-2 text-xs px-4 py-1.5 rounded-full border border-white/10 text-zinc-300 hover:bg-white/5 hover:border-white/20 transition-all font-medium"
+            className="flex items-center gap-2 text-xs px-4 py-1.5 rounded-full border border-[#8DA432]/30 text-[#FFFCE9] hover:bg-[#365004]/30 hover:border-[#8DA432]/50 transition-all font-medium active:scale-95"
           >
             <svg
               width="13"
@@ -76,11 +65,12 @@ export function Header({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="text-[#8DA432]"
             >
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
             </svg>
-            Actualizar
+            <span>Actualizar</span>
           </button>
         </div>
       </div>
@@ -89,7 +79,7 @@ export function Header({
 }
 
 // =============================================================================
-// Panel de Cisterna
+// Panel de Cisterna Principal con paleta de marca
 // =============================================================================
 export function TankPanel({
   tanque,
@@ -106,9 +96,9 @@ export function TankPanel({
   const isOpen = tanque.llave_recarga_abierta;
 
   return (
-    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 flex flex-col justify-between shadow-md">
+    <div className="bg-[#131d08]/85 rounded-2xl p-5 border border-[#8DA432]/20 flex flex-col justify-between shadow-md">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 text-white font-semibold text-base">
+        <div className="flex items-center gap-2 text-[#FFFCE9] font-semibold text-base">
           <svg
             width="18"
             height="18"
@@ -118,7 +108,7 @@ export function TankPanel({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-zinc-400"
+            className="text-[#8DA432]"
           >
             <ellipse cx="12" cy="5" rx="9" ry="3" />
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
@@ -132,10 +122,10 @@ export function TankPanel({
             onClick={onToggleRecarga}
             className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all flex items-center gap-1.5 active:scale-95 ${
               isOpen
-                ? 'bg-blue-600 text-white border-blue-400 shadow-md animate-pulse'
+                ? 'bg-[#365004] text-[#EDE383] border-[#8DA432] shadow-md animate-pulse'
                 : isFull
-                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 cursor-default'
-                : 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white'
+                ? 'bg-[#365004]/40 border-[#8DA432]/40 text-[#EDE383] cursor-default'
+                : 'bg-[#8DA432]/20 border-[#8DA432]/40 text-[#FFFCE9] hover:bg-[#8DA432]/30'
             }`}
           >
             {isOpen ? (
@@ -150,23 +140,27 @@ export function TankPanel({
       </div>
 
       <div className="flex items-baseline gap-2.5 mb-3">
-        <span className="text-4xl font-bold tracking-tight text-white">
+        <span className="text-4xl font-bold tracking-tight text-[#FFFCE9]">
           {nivel.toFixed(0)}%
         </span>
-        <span className="text-sm text-zinc-400 font-normal">
+        <span className="text-sm text-[#EDE383]/70 font-normal">
           {volumenActual} / {capacidadTotal} m³
         </span>
         {isFull && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#365004]/60 text-[#EDE383] border border-[#8DA432]/40">
             Sensor de boya: Corte activo
           </span>
         )}
       </div>
 
-      <div className="w-full bg-zinc-800/80 h-2 rounded-full overflow-hidden">
+      <div className="w-full bg-[#0a1004] h-2 rounded-full overflow-hidden border border-[#8DA432]/10">
         <div
           className={`h-full transition-all duration-700 ${
-            isCritical ? 'bg-rose-500' : isFull ? 'bg-emerald-500' : 'bg-blue-500'
+            isCritical
+              ? 'bg-[#925E06]'
+              : isFull
+              ? 'bg-[#8DA432]'
+              : 'bg-gradient-to-r from-[#365004] to-[#8DA432]'
           }`}
           style={{ width: `${Math.min(100, Math.max(0, nivel))}%` }}
         />
@@ -195,17 +189,20 @@ export function SimulationPanel({
   ];
 
   return (
-    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 mt-6">
-      <h3 className="text-white text-sm font-semibold mb-3 flex items-center justify-between">
-        <span>🎮 Simulación de Sensores (Tinkercad)</span>
-        <span className="text-[10px] text-zinc-500 font-normal">Ajuste en vivo</span>
+    <div className="bg-[#131d08]/85 rounded-2xl p-5 border border-[#8DA432]/20 mt-6 shadow-md">
+      <h3 className="text-[#FFFCE9] text-sm font-semibold mb-3 flex items-center justify-between">
+        <span className="flex items-center gap-2">
+          <span>🎮</span>
+          <span>Simulador de Sensores IoT</span>
+        </span>
+        <span className="text-[10px] text-[#EDE383]/70 font-medium">Ajuste manual para demo</span>
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         {sliders.map(({ key, label, min, max, step, unit }) => (
-          <div key={key}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-zinc-400 text-[11px] truncate">{label}</span>
-              <span className="text-white font-mono font-medium text-[11px]">
+          <div key={key} className="bg-[#0a1004]/60 p-2.5 rounded-xl border border-[#8DA432]/10">
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-[#EDE383]/80 text-[11px] truncate font-medium">{label}</span>
+              <span className="text-[#FFFCE9] font-mono font-bold text-[11px]">
                 {(data[key] ?? (key === 'ph_tierra' ? 6.8 : 50)).toFixed(key === 'ph_tierra' || key === 'temperatura' ? 1 : 0)}
                 {unit}
               </span>
@@ -217,7 +214,7 @@ export function SimulationPanel({
               step={step}
               value={data[key] ?? (key === 'ph_tierra' ? 6.8 : 50)}
               onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              className="w-full h-1.5 bg-[#1a270a] rounded-lg appearance-none cursor-pointer accent-[#8DA432]"
             />
           </div>
         ))}
