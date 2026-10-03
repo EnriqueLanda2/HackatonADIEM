@@ -185,12 +185,10 @@ export function SimulationPanel({
   data: any;
 }) {
   const sliders = [
-    { key: 'humedad_cana', label: 'Humedad Caña', min: 0, max: 100, step: 1, unit: '%' },
-    { key: 'humedad_tomate', label: 'Humedad Tomate', min: 0, max: 100, step: 1, unit: '%' },
-    { key: 'humedad_arroz', label: 'Humedad Arroz', min: 0, max: 100, step: 1, unit: '%' },
-    { key: 'nivel_tanque', label: 'Nivel Cisterna', min: 0, max: 100, step: 1, unit: '%' },
-    { key: 'ph_suelo', label: 'pH del Suelo', min: 4, max: 9, step: 0.1, unit: ' pH' },
-    { key: 'temperatura', label: 'Temp. Suelo', min: 15, max: 40, step: 0.5, unit: '°C' },
+    { key: 'humedad_cana', label: 'Humedad Caña', min: 0, max: 100 },
+    { key: 'humedad_tomate', label: 'Humedad Tomate', min: 0, max: 100 },
+    { key: 'humedad_arroz', label: 'Humedad Arroz', min: 0, max: 100 },
+    { key: 'nivel_tanque', label: 'Nivel Cisterna', min: 0, max: 100 },
   ];
 
   return (
@@ -199,22 +197,20 @@ export function SimulationPanel({
         <span>🎮 Simulación de Sensores (Tinkercad)</span>
         <span className="text-[10px] text-zinc-500 font-normal">Ajuste en vivo</span>
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        {sliders.map(({ key, label, min, max, step, unit }) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {sliders.map(({ key, label, min, max }) => (
           <div key={key}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-zinc-400 text-[11px] truncate">{label}</span>
-              <span className="text-white font-mono font-medium text-[11px]">
-                {(data[key] ?? (key === 'ph_suelo' ? 6.8 : 50)).toFixed(key === 'ph_suelo' || key === 'temperatura' ? 1 : 0)}
-                {unit}
+              <span className="text-zinc-400">{label}</span>
+              <span className="text-white font-mono font-medium">
+                {(data[key] ?? 50).toFixed(0)}%
               </span>
             </div>
             <input
               type="range"
               min={min}
               max={max}
-              step={step}
-              value={data[key] ?? (key === 'ph_suelo' ? 6.8 : 50)}
+              value={data[key] ?? 50}
               onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
               className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
