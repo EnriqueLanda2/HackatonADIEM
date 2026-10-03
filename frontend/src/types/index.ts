@@ -29,8 +29,9 @@ export type Zona3D = 'zona_alta' | 'zona_media' | 'zona_baja';
 export interface Parcela {
   id: string;
   nombre: string;
-  cultivo_id: string;
-  cultivo?: Cultivo;
+  tiene_cultivo: boolean;
+  cultivo_id?: string | null;
+  cultivo?: Cultivo | null;
   latitud: number;
   longitud: number;
   altitud_msnm: number;
@@ -41,16 +42,24 @@ export interface Parcela {
   modo_operacion: ModoOperacion;
   propietario: string;
   notas?: string;
+  // Sensores configurados
+  sensores_activos?: {
+    humedad_suelo: boolean;
+    humedad_ambiental: boolean;
+    temperatura: boolean;
+    ph_suelo: boolean;
+  };
   // Datos en tiempo real (populados desde sensores)
   humedad_actual?: number;
   temperatura_actual?: number;
   humedad_ambiental_actual?: number;
+  ph_suelo_actual?: number;
   valvula?: Valvula;
   sensores?: Sensor[];
 }
 
 // ---- Sensores ----
-export type TipoSensor = 'humedad_suelo' | 'temperatura' | 'humedad_ambiental' | 'nivel_tanque';
+export type TipoSensor = 'humedad_suelo' | 'temperatura' | 'humedad_ambiental' | 'ph_suelo' | 'nivel_tanque';
 
 export interface Sensor {
   id: string;
@@ -196,19 +205,28 @@ export interface DashboardSummary {
 
 export interface ParcelaDashboard {
   parcela: Parcela;
+  tiene_cultivo: boolean;
+  cultivo?: Cultivo | null;
   humedad_suelo: number;
   temperatura: number;
   humedad_ambiental: number;
-  ph_suelo?: number;
+  ph_suelo: number;
+  sensores_activos?: {
+    humedad_suelo: boolean;
+    humedad_ambiental: boolean;
+    temperatura: boolean;
+    ph_suelo: boolean;
+  };
   valvula_estado: EstadoValvula;
   valvula_modo: ModoOperacion;
-  cultivo: Cultivo;
   ultimo_riego?: EventoRiego;
 }
 
 export interface Estadisticas {
   total_parcelas: number;
   parcelas_activas: number;
+  parcelas_con_cultivo?: number;
+  parcelas_sin_cultivo?: number;
   valvulas_abiertas: number;
   alertas_sin_leer: number;
   litros_hoy: number;
@@ -224,9 +242,35 @@ export interface DatosSimulacion {
   temperatura: number;
   humedad_ambiental: number;
   ph_suelo?: number;
+  ph_tierra?: number;
   valvula_cana: boolean;
   valvula_tomate: boolean;
   valvula_arroz: boolean;
+  [key: string]: any;
+}
+
+// ---- Formulario Crear Parcela DTO ----
+export interface CreateParcelaDTO {
+  nombre: string;
+  propietario: string;
+  superficie_hectareas: number;
+  zona_3d: Zona3D;
+  modo_operacion: ModoOperacion;
+  color_base?: string;
+  tiene_cultivo: boolean;
+  cultivo_id?: string | null;
+  estado_descanso?: string;
+  notas?: string;
+  sensores_config: {
+    humedad_suelo: boolean;
+    humedad_suelo_valor: number;
+    humedad_ambiental: boolean;
+    humedad_ambiental_valor: number;
+    temperatura: boolean;
+    temperatura_valor: number;
+    ph_suelo: boolean;
+    ph_suelo_valor: number;
+  };
 }
 
 // ---- WebSocket Events ----

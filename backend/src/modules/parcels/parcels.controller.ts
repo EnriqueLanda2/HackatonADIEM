@@ -29,7 +29,7 @@ export class ParcelsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update parcel' })
   update(@Param('id') id: string, @Body() data: Partial<Parcela>) {
-    return this.parelsService.update(id, data);
+    return this.parcelsService.update(id, data);
   }
 
   @Delete(':id')

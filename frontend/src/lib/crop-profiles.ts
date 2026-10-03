@@ -148,8 +148,14 @@ export const CULTIVOS_MORELOS: Record<string, Cultivo> = {
  * Obtiene el color de humedad basado en el nivel y el perfil del cultivo.
  * Se usa para mapear colores a la malla 3D.
  */
-export function getColorHumedad(humedad: number, cultivo: Cultivo): string {
-  const ratio = humedad / 100;
+export function getColorHumedad(humedad: number, cultivo?: Cultivo | null): string {
+  if (!cultivo) {
+    // Terreno sin cultivo: color de suelo/tierra húmeda vs seca
+    if (humedad >= 70) return '#4E342E';
+    if (humedad >= 40) return '#6D4C41';
+    if (humedad >= 20) return '#8D6E63';
+    return '#A1887F';
+  }
 
   if (humedad >= cultivo.humedad_maxima) {
     // Saturación - Azul oscuro
@@ -165,6 +171,43 @@ export function getColorHumedad(humedad: number, cultivo: Cultivo): string {
     // Seco - Rojo/Marrón
     const t = humedad / cultivo.humedad_minima;
     return interpolateColor('#8B4513', '#FFC107', t);
+  }
+}
+
+/**
+ * Clasificación agronómica del pH de la tierra
+ */
+export function getEstadoPH(ph: number): {
+  estado: 'acido' | 'optimo' | 'alcalino';
+  label: string;
+  color: string;
+  badgeClass: string;
+  descripcion: string;
+} {
+  if (ph < 6.0) {
+    return {
+      estado: 'acido',
+      label: 'Ácido',
+      color: '#FFA726',
+      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      descripcion: 'Suelo ácido (< 6.0 pH). Monitorear disponibilidad de nutrientes.',
+    };
+  } else if (ph <= 7.5) {
+    return {
+      estado: 'optimo',
+      label: 'Óptimo',
+      color: '#66BB6A',
+      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      descripcion: 'pH óptimo (6.0 - 7.5) para asimilación de minerales.',
+    };
+  } else {
+    return {
+      estado: 'alcalino',
+      label: 'Alcalino',
+      color: '#42A5F5',
+      badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+      descripcion: 'Suelo alcalino (> 7.5 pH). Posible bloqueo de fósforo/hierro.',
+    };
   }
 }
 

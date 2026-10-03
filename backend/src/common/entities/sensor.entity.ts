@@ -6,7 +6,7 @@ export class Sensor {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Parcela)
+  @ManyToOne(() => Parcela, (p) => p.sensores, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'parcela_id' })
   parcela: Parcela;
 

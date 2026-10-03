@@ -42,6 +42,7 @@ CREATE TABLE cultivos (
 CREATE TABLE parcelas (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre VARCHAR(150) NOT NULL,
+    tiene_cultivo BOOLEAN DEFAULT true,
     cultivo_id UUID REFERENCES cultivos(id),
     -- Ubicación geográfica
     latitud DECIMAL(10,7),
@@ -69,8 +70,8 @@ CREATE TABLE parcelas (
 CREATE TABLE sensores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parcela_id UUID REFERENCES parcelas(id),
-    tipo VARCHAR(50) NOT NULL,  -- 'humedad_suelo', 'temperatura', 'humedad_ambiental', 'nivel_tanque'
-    modelo VARCHAR(100),        -- 'Capacitivo', 'SHT31', 'DHT22', 'JSN-SR04T'
+    tipo VARCHAR(50) NOT NULL,  -- 'humedad_suelo', 'temperatura', 'humedad_ambiental', 'ph_suelo', 'nivel_tanque'
+    modelo VARCHAR(100),        -- 'Capacitivo', 'SHT31', 'DHT22', 'Sonda pH E-201-C', 'JSN-SR04T'
     -- Ubicación dentro de la parcela
     posicion_x DECIMAL(8,4),
     posicion_y DECIMAL(8,4),
@@ -246,11 +247,34 @@ INSERT INTO cultivos (nombre, nombre_cientifico, humedad_minima, humedad_optima,
 -- =============================================================================
 -- DATOS DE EJEMPLO: Parcelas de demostración
 -- =============================================================================
-INSERT INTO parcelas (nombre, cultivo_id, latitud, longitud, altitud_msnm, superficie_hectareas, zona_3d, color_base, modo_operacion, propietario) VALUES
-('Parcela Norte - Caña', (SELECT id FROM cultivos WHERE nombre = 'Caña de Azúcar'), 18.9186, -99.2350, 1520, 5.5, 'zona_alta', '#8BC34A', 'automatico', 'Ejido Morelos Norte'),
-('Parcela Centro - Tomate', (SELECT id FROM cultivos WHERE nombre = 'Tomate Rojo'), 18.9100, -99.2280, 1480, 2.0, 'zona_media', '#F44336', 'automatico', 'Cooperativa Jiutepec'),
-('Parcela Sur - Arroz', (SELECT id FROM cultivos WHERE nombre = 'Arroz'), 18.9020, -99.2200, 1420, 8.0, 'zona_baja', '#2196F3', 'automatico', 'Ejido Morelos Sur');
+INSERT INTO parcelas (nombre, tiene_cultivo, cultivo_id, latitud, longitud, altitud_msnm, superficie_hectareas, zona_3d, color_base, modo_operacion, propietario) VALUES
+('Parcela Norte - Caña', true, (SELECT id FROM cultivos WHERE nombre = 'Caña de Azúcar'), 18.9186, -99.2350, 1520, 5.5, 'zona_alta', '#8BC34A', 'automatico', 'Ejido Morelos Norte'),
+('Parcela Centro - Tomate', true, (SELECT id FROM cultivos WHERE nombre = 'Tomate Rojo'), 18.9100, -99.2280, 1480, 2.0, 'zona_media', '#F44336', 'automatico', 'Cooperativa Jiutepec'),
+('Parcela Sur - Arroz', true, (SELECT id FROM cultivos WHERE nombre = 'Arroz'), 18.9020, -99.2200, 1420, 8.0, 'zona_baja', '#2196F3', 'automatico', 'Ejido Morelos Sur'),
+('Parcela Poniente - En Descanso', false, NULL, 18.9150, -99.2310, 1490, 3.2, 'zona_media', '#8D6E63', 'manual', 'Cooperativa Jiutepec');
 
 -- Tanque de agua principal
 INSERT INTO tanques_agua (nombre, tipo, capacidad_litros, nivel_actual_porcentaje, nivel_critico_porcentaje) VALUES
 ('Cisterna Principal', 'cisterna', 50000, 72, 20);
+
+-- Sensores de demostración (Humedad suelo, Temperatura, Humedad ambiental, pH de la tierra)
+INSERT INTO sensores (parcela_id, tipo, modelo, unidad, ultimo_valor, ultima_lectura) VALUES
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Norte - Caña'), 'humedad_suelo', 'Capacitivo V1.2', '%', 62.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Norte - Caña'), 'humedad_ambiental', 'DHT22', '%', 65.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Norte - Caña'), 'temperatura', 'DHT22', '°C', 27.5, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Norte - Caña'), 'ph_suelo', 'Sonda pH E-201-C', 'pH', 6.8, NOW()),
+
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Centro - Tomate'), 'humedad_suelo', 'Capacitivo V1.2', '%', 48.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Centro - Tomate'), 'humedad_ambiental', 'DHT22', '%', 65.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Centro - Tomate'), 'temperatura', 'DHT22', '°C', 27.5, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Centro - Tomate'), 'ph_suelo', 'Sonda pH E-201-C', 'pH', 6.2, NOW()),
+
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Sur - Arroz'), 'humedad_suelo', 'Capacitivo V1.2', '%', 88.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Sur - Arroz'), 'humedad_ambiental', 'DHT22', '%', 65.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Sur - Arroz'), 'temperatura', 'DHT22', '°C', 27.5, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Sur - Arroz'), 'ph_suelo', 'Sonda pH E-201-C', 'pH', 7.2, NOW()),
+
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'humedad_suelo', 'Capacitivo V1.2', '%', 32.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'humedad_ambiental', 'DHT22', '%', 60.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'temperatura', 'DHT22', '°C', 28.0, NOW()),
+((SELECT id FROM parcelas WHERE nombre = 'Parcela Poniente - En Descanso'), 'ph_suelo', 'Sonda pH E-201-C', 'pH', 6.5, NOW());

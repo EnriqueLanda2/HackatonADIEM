@@ -2,25 +2,114 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Parcela } from '../../common/entities/parcela.entity';
+import { Sensor } from '../../common/entities/sensor.entity';
+
+export interface CreateParcelaDto extends Partial<Parcela> {
+  sensores_config?: {
+    humedad_suelo?: boolean;
+    humedad_suelo_valor?: number;
+    humedad_ambiental?: boolean;
+    humedad_ambiental_valor?: number;
+    temperatura?: boolean;
+    temperatura_valor?: number;
+    ph_suelo?: boolean;
+    ph_suelo_valor?: number;
+  };
+}
 
 @Injectable()
 export class ParcelsService {
   constructor(
     @InjectRepository(Parcela)
     private parcelsRepository: Repository<Parcela>,
+    @InjectRepository(Sensor)
+    private sensorRepository: Repository<Sensor>,
   ) {}
 
   findAll(): Promise<Parcela[]> {
-    return this.parcelsRepository.find({ relations: ['cultivo'] });
+    return this.parcelsRepository.find({ relations: ['cultivo', 'sensores'] });
   }
 
   findOne(id: string): Promise<Parcela | null> {
-    return this.parcelsRepository.findOne({ where: { id }, relations: ['cultivo'] });
+    return this.parcelsRepository.findOne({ where: { id }, relations: ['cultivo', 'sensores'] });
   }
 
-  async create(parcelData: Partial<Parcela>): Promise<Parcela> {
-    const parcel = this.parcelsRepository.create(parcelData);
-    return this.parcelsRepository.save(parcel);
+  async create(parcelData: CreateParcelaDto): Promise<Parcela> {
+    const { sensores_config, ...data } = parcelData;
+    const parcel = this.parcelsRepository.create({
+      ...data,
+      tiene_cultivo: data.tiene_cultivo ?? !!data.cultivo_id,
+    });
+    const savedParcel = await this.parcelsRepository.save(parcel);
+
+    if (sensores_config) {
+      const sensorsToCreate: Sensor[] = [];
+      const now = new Date();
+
+      if (sensores_config.humedad_suelo) {
+        sensorsToCreate.push(
+          this.sensorRepository.create({
+            parcela_id: savedParcel.id,
+            tipo: 'humedad_suelo',
+            modelo: 'Capacitivo V1.2',
+            unidad: '%',
+            ultimo_valor: sensores_config.humedad_suelo_valor ?? 60,
+            ultima_lectura: now,
+            activo: true,
+          }),
+        );
+      }
+
+      if (sensores_config.humedad_ambiental) {
+        sensorsToCreate.push(
+          this.sensorRepository.create({
+            parcela_id: savedParcel.id,
+            tipo: 'humedad_ambiental',
+            modelo: 'DHT22 / SHT31',
+            unidad: '%',
+            ultimo_valor: sensores_config.humedad_ambiental_valor ?? 65,
+            ultima_lectura: now,
+            activo: true,
+          }),
+        );
+      }
+
+      if (sensores_config.temperatura) {
+        sensorsToCreate.push(
+          this.sensorRepository.create({
+            parcela_id: savedParcel.id,
+            tipo: 'temperatura',
+            modelo: 'DHT22 / SHT31',
+            unidad: '°C',
+            ultimo_valor: sensores_config.temperatura_valor ?? 26,
+            ultima_lectura: now,
+            activo: true,
+          }),
+        );
+      }
+
+      if (sensores_config.ph_suelo) {
+        sensorsToCreate.push(
+          this.sensorRepository.create({
+            parcela_id: savedParcel.id,
+            tipo: 'ph_suelo',
+            modelo: 'Sonda pH E-201-C',
+            unidad: 'pH',
+            valor_minimo: 0,
+            valor_maximo: 14,
+            ultimo_valor: sensores_config.ph_suelo_valor ?? 6.8,
+            ultima_lectura: now,
+            activo: true,
+          }),
+        );
+      }
+
+      if (sensorsToCreate.length > 0) {
+        await this.sensorRepository.save(sensorsToCreate);
+      }
+    }
+
+    return this.findOne(savedParcel.id) as Promise<Parcela>;
   }
 
   async update(id: string, parcelData: Partial<Parcela>): Promise<Parcela> {
