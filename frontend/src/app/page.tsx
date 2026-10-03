@@ -7,7 +7,9 @@ import { api } from '@/lib/api';
 import { fetchLiveWeather } from '@/lib/weather-service';
 import ParcelaCard from '@/components/dashboard/ParcelaCard';
 import WeatherWidgetIOS from '@/components/dashboard/WeatherWidgetIOS';
+import DroneControlPanel from '@/components/dashboard/DroneControlPanel';
 import CreateParcelModal from '@/components/dashboard/CreateParcelModal';
+import AlertsPanel from '@/components/dashboard/AlertsPanel';
 import {
   TankPanel,
   Header,
@@ -57,7 +59,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Toggle de válvula
+  // Toggle de válvula manual/automática
   const handleToggleValve = useCallback(
     async (valvulaId: string) => {
       try {
@@ -78,6 +80,19 @@ export default function DashboardPage() {
         refresh();
       } catch (err) {
         console.error('Error al crear parcela:', err);
+      }
+    },
+    [refresh]
+  );
+
+  // Descartar alerta
+  const handleDismissAlert = useCallback(
+    async (alertaId: string) => {
+      try {
+        await api.marcarAlertaLeida(alertaId);
+        refresh();
+      } catch (err) {
+        console.error('Error al descartar alerta:', err);
       }
     },
     [refresh]
@@ -119,6 +134,7 @@ export default function DashboardPage() {
   const stats = data.estadisticas;
   const simData = api.getSimulationData();
   const climaDisplay = liveWeather || data.clima;
+  const dronData = data.dron || api.getDronState();
 
   return (
     <div className="min-h-screen bg-[#111111] text-white selection:bg-emerald-500/20 antialiased font-sans">
@@ -181,9 +197,9 @@ export default function DashboardPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* SECCIÓN PRINCIPAL: PARCELAS A LA IZQUIERDA, VISTA 3D A LA DERECHA        */}
+        {/* SECCIÓN PRINCIPAL: PARCELAS A LA IZQUIERDA, VISTA 3D Y DRON A LA DERECHA */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
           
           {/* COLUMNA IZQUIERDA: Tarjetas de Información de Sensores por Parcela */}
           <div className="lg:col-span-5 flex flex-col gap-4">
@@ -192,7 +208,7 @@ export default function DashboardPage() {
                 Monitoreo de Sensores
               </h2>
               <span className="text-xs text-zinc-500 font-medium">
-                {data.parcelas.length} Parcelas
+                {data.parcelas.length} Parcelas en Morelos
               </span>
             </div>
 
@@ -207,7 +223,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* COLUMNA DERECHA: Terreno 3D + Clima iOS + Cisterna */}
+          {/* COLUMNA DERECHA: Terreno 3D + Sistema de Dron + Clima iOS + Cisterna */}
           <div className="lg:col-span-7 flex flex-col gap-6">
             
             {/* Tarjeta de la Vista del Terreno 3D */}
@@ -232,21 +248,29 @@ export default function DashboardPage() {
                   <span>Vista del terreno 3D</span>
                 </div>
                 <span className="text-[11px] text-zinc-500 font-medium">
-                  Rotación interactiva activada
+                  Rotación 360° · Dron y Telemetría en vivo
                 </span>
               </div>
 
               {/* Contenedor del lienzo 3D */}
-              <div className="w-full h-[420px] md:h-[460px] rounded-xl overflow-hidden">
+              <div className="w-full h-[440px] md:h-[480px] rounded-xl overflow-hidden">
                 <TerrainScene3D
                   parcelas={data.parcelas}
                   tanqueNivel={data.tanques[0]?.nivel_actual_porcentaje ?? 79}
                   tanqueCapacidad={data.tanques[0]?.capacidad_litros ?? 50000}
+                  dron={dronData}
                   onParcelaSelect={setSelectedParcelaId}
                   selectedParcelaId={selectedParcelaId ?? undefined}
                 />
               </div>
             </div>
+
+            {/* Panel de Control de Riego por Dron y Modo Maestro */}
+            <DroneControlPanel
+              dron={dronData}
+              modoGlobal={data.modo_global_riego ?? 'automatico'}
+              onRefresh={refresh}
+            />
 
             {/* Fila con Clima iOS y Cisterna */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -261,11 +285,23 @@ export default function DashboardPage() {
         </div>
 
         {/* ========================================================================= */}
+        {/* PANEL DE ALERTAS ACTIVAS                                                  */}
+        {/* ========================================================================= */}
+        {data.alertas_activas.length > 0 && (
+          <div className="mb-6">
+            <AlertsPanel
+              alertas={data.alertas_activas}
+              onDismiss={handleDismissAlert}
+            />
+          </div>
+        )}
+
+        {/* ========================================================================= */}
         {/* PANEL DE SIMULACIÓN (PARA PRESENTACIÓN / DEMO HACKATHON)                   */}
         {/* ========================================================================= */}
         <SimulationPanel onUpdateData={handleSimulationUpdate} data={simData} />
 
-        {/* Modal para Crear Nueva Parcela (Aporte de Diego integrado) */}
+        {/* Modal para Crear Nueva Parcela */}
         <CreateParcelModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}

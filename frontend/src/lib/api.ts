@@ -15,6 +15,7 @@ import {
   DatosSimulacion,
   ParcelaDashboard,
   CreateParcelaDTO,
+  DronRiego,
 } from '@/types';
 import { CULTIVOS_MORELOS } from './crop-profiles';
 
@@ -77,6 +78,22 @@ let mockSimulationData: DatosSimulacion = {
 // Parcelas creadas por el usuario en modo demo
 const mockCustomParcels: ParcelaDashboard[] = [];
 
+let mockModoGlobalRiego: 'automatico' | 'manual' = 'automatico';
+
+let mockDronState: DronRiego = {
+  id: 'dron-agricola-1',
+  nombre: 'AeroSpray T-40 Morelos',
+  estado: 'en_base',
+  nivel_agua_porcentaje: 85,
+  capacidad_litros: 40,
+  bateria_porcentaje: 94,
+  en_posicion_recarga: true,
+  llave_paso_recarga_abierta: false,
+  mision_activa: false,
+  dias_sin_lluvia: 3,
+  requiere_riego_emergencia: true,
+};
+
 // Simulación progresiva - los valores cambian ligeramente cada consulta
 function updateMockData(): DatosSimulacion {
   const vary = (val: number, range: number, min: number, max: number) => {
@@ -84,19 +101,34 @@ function updateMockData(): DatosSimulacion {
     return Math.max(min, Math.min(max, +(val + delta).toFixed(1)));
   };
 
+  // Lógica del dron
+  if (mockDronState.llave_paso_recarga_abierta && mockDronState.en_posicion_recarga) {
+    // Si la llave de paso está abierta y está presente, se llena
+    mockDronState.nivel_agua_porcentaje = Math.min(100, mockDronState.nivel_agua_porcentaje + 15);
+    if (mockDronState.nivel_agua_porcentaje >= 100) {
+      mockDronState.llave_paso_recarga_abierta = false;
+    }
+  }
+
+  if (mockDronState.mision_activa && mockDronState.nivel_agua_porcentaje > 0) {
+    mockDronState.nivel_agua_porcentaje = Math.max(0, mockDronState.nivel_agua_porcentaje - 10);
+    mockDronState.estado = 'regando';
+    if (mockDronState.nivel_agua_porcentaje === 0) {
+      mockDronState.mision_activa = false;
+      mockDronState.estado = 'en_base';
+    }
+  }
+
   mockSimulationData = {
     ...mockSimulationData,
-    humedad_cana: vary(mockSimulationData.humedad_cana, 4, 20, 95),
-    humedad_tomate: vary(mockSimulationData.humedad_tomate, 5, 15, 85),
-    humedad_arroz: vary(mockSimulationData.humedad_arroz, 3, 60, 100),
+    humedad_cana: vary(mockSimulationData.humedad_cana, 3, 20, 95),
+    humedad_tomate: vary(mockSimulationData.humedad_tomate, 4, 15, 85),
+    humedad_arroz: vary(mockSimulationData.humedad_arroz, 2, 60, 100),
     humedad_descanso: vary(mockSimulationData.humedad_descanso ?? 32, 2, 10, 60),
-    nivel_tanque: vary(mockSimulationData.nivel_tanque, 2, 5, 100),
-    temperatura: vary(mockSimulationData.temperatura, 1.5, 18, 38),
-    humedad_ambiental: vary(mockSimulationData.humedad_ambiental, 3, 30, 95),
+    nivel_tanque: vary(mockSimulationData.nivel_tanque, 1.5, 5, 100),
+    temperatura: vary(mockSimulationData.temperatura, 1, 18, 38),
+    humedad_ambiental: vary(mockSimulationData.humedad_ambiental, 2, 30, 95),
     ph_tierra: vary(mockSimulationData.ph_tierra ?? 6.8, 0.1, 5.0, 8.5),
-    valvula_cana: mockSimulationData.humedad_cana < 55,
-    valvula_tomate: mockSimulationData.humedad_tomate < 45,
-    valvula_arroz: mockSimulationData.humedad_arroz < 80,
   };
 
   return mockSimulationData;
@@ -248,7 +280,7 @@ function generateMockDashboard(): DashboardSummary {
       humedad_suelo: data.humedad_descanso ?? 32,
       temperatura: data.temperatura,
       humedad_ambiental: data.humedad_ambiental,
-      ph_suelo: data.ph_suelo ?? (data.ph_tierra ? +(data.ph_tierra - 0.3).toFixed(1) : 7.0),
+      ph_suelo: data.ph_tierra ? +(data.ph_tierra - 0.3).toFixed(1) : 6.5,
       sensores_activos: {
         humedad_suelo: true,
         humedad_ambiental: true,
@@ -307,6 +339,40 @@ function generateMockDashboard(): DashboardSummary {
     });
   }
 
+  // Alerta de Dron de Emergencia si van >= 3 días sin lluvia
+  if (mockDronState.dias_sin_lluvia >= 3) {
+    mockDronState.requiere_riego_emergencia = true;
+    if (mockDronState.nivel_agua_porcentaje <= 15) {
+      alertas.push({
+        id: 'alerta-dron-vacio',
+        tipo: 'dron_vacio',
+        severidad: 'critica',
+        titulo: '🚨 Alerta: Dron de emergencia sin agua',
+        mensaje:
+          'Pronóstico crítico: 3 días consecutivos sin lluvia en Morelos. Se requiere activar riego de emergencia por dron, pero el tanque del dron está vacío. Colóquelo en la estación de recarga con sensor de presencia para habilitar la llave de paso de agua o llénelo manualmente.',
+        leida: false,
+        activa: true,
+        created_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Lógica de riego automático vs manual por parcela
+  if (mockModoGlobalRiego === 'automatico') {
+    parcelas.forEach((p) => {
+      if (p.tiene_cultivo && p.cultivo) {
+        // Modo automático: se activa si humedad < minima y tanque > 20%
+        if (p.humedad_suelo < p.cultivo.humedad_minima && data.nivel_tanque >= 20) {
+          p.valvula_estado = 'abierta';
+          p.valvula_modo = 'automatico';
+        } else if (p.humedad_suelo >= p.cultivo.humedad_optima) {
+          p.valvula_estado = 'cerrada';
+          p.valvula_modo = 'automatico';
+        }
+      }
+    });
+  }
+
   return {
     parcelas,
     tanques: [
@@ -321,14 +387,21 @@ function generateMockDashboard(): DashboardSummary {
         activo: true,
       },
     ],
+    dron: { ...mockDronState },
     alertas_activas: alertas,
+    modo_global_riego: mockModoGlobalRiego,
     clima: {
-      pronostico_lluvia_12h: Math.random() > 0.7,
-      probabilidad_lluvia: +(Math.random() * 60).toFixed(0),
+      pronostico_lluvia_12h: false,
+      pronostico_lluvia_3dias: false,
+      dias_consecutivos_sin_lluvia: mockDronState.dias_sin_lluvia,
+      probabilidad_lluvia: 5,
       temperatura_exterior: data.temperatura,
+      temperatura_max: 33,
+      temperatura_min: 19,
+      condicion_texto: 'Despejado / Sequía temporal',
       humedad_relativa_exterior: data.humedad_ambiental,
-      velocidad_viento: +(Math.random() * 15 + 2).toFixed(1),
-      fuente_api: 'mock-morelos',
+      velocidad_viento: 12.5,
+      fuente_api: 'Open-Meteo (Morelos)',
       consultado_at: new Date().toISOString(),
     },
     eventos_recientes: [
@@ -532,5 +605,87 @@ export const api = {
   // Verificar si el backend está disponible
   async isBackendAvailable(): Promise<boolean> {
     return checkBackend();
+  },
+
+  // ---- Control de Modo de Riego (Automático / Manual) ----
+  toggleModoGlobalRiego(modo?: 'automatico' | 'manual'): 'automatico' | 'manual' {
+    if (modo) {
+      mockModoGlobalRiego = modo;
+    } else {
+      mockModoGlobalRiego = mockModoGlobalRiego === 'automatico' ? 'manual' : 'automatico';
+    }
+    return mockModoGlobalRiego;
+  },
+
+  getModoGlobalRiego(): 'automatico' | 'manual' {
+    return mockModoGlobalRiego;
+  },
+
+  activarRiegoManualTodo(): void {
+    mockSimulationData.valvula_cana = true;
+    mockSimulationData.valvula_tomate = true;
+    mockSimulationData.valvula_arroz = true;
+  },
+
+  detenerRiegoTodo(): void {
+    mockSimulationData.valvula_cana = false;
+    mockSimulationData.valvula_tomate = false;
+    mockSimulationData.valvula_arroz = false;
+  },
+
+  // ---- Control del Sistema de Dron de Riego de Emergencia ----
+  getDronState(): DronRiego {
+    return { ...mockDronState };
+  },
+
+  // Sensor de presencia de objeto en la estación de recarga
+  toggleDronPresencia(): boolean {
+    mockDronState.en_posicion_recarga = !mockDronState.en_posicion_recarga;
+    // Si se retira el dron de la base, se cierra la llave de paso por seguridad
+    if (!mockDronState.en_posicion_recarga) {
+      mockDronState.llave_paso_recarga_abierta = false;
+    }
+    return mockDronState.en_posicion_recarga;
+  },
+
+  // Llave de paso: solo se puede abrir si el sensor detecta objeto en posición
+  toggleDronLlavePaso(): { success: boolean; message: string; abierta: boolean } {
+    if (!mockDronState.en_posicion_recarga) {
+      return {
+        success: false,
+        message: 'Acceso denegado: El sensor de presencia no detecta al dron en la plataforma de recarga.',
+        abierta: false,
+      };
+    }
+    mockDronState.llave_paso_recarga_abierta = !mockDronState.llave_paso_recarga_abierta;
+    return {
+      success: true,
+      message: mockDronState.llave_paso_recarga_abierta
+        ? 'Llave de paso abierta. Suministrando agua al tanque del dron...'
+        : 'Llave de paso cerrada.',
+      abierta: mockDronState.llave_paso_recarga_abierta,
+    };
+  },
+
+  // Despacho de misión de riego por dron
+  despacharDronEmergencia(): { success: boolean; message: string } {
+    if (mockDronState.nivel_agua_porcentaje <= 15) {
+      return {
+        success: false,
+        message: 'No es posible despegar: El tanque del dron está vacío o en nivel crítico (<15%). Realice la recarga.',
+      };
+    }
+    mockDronState.mision_activa = true;
+    mockDronState.estado = 'regando';
+    mockDronState.ultimo_despacho = new Date().toISOString();
+    return {
+      success: true,
+      message: 'Misión de riego por dron de emergencia iniciada con éxito sobre todo el sembradío.',
+    };
+  },
+
+  // Llenado manual del dron
+  llenarDronManual(): void {
+    mockDronState.nivel_agua_porcentaje = 100;
   },
 };

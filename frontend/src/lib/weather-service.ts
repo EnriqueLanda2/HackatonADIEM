@@ -49,6 +49,8 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
         // Procesar datos de Google Weather
         return {
           pronostico_lluvia_12h: (gData.precipitationProbability?.percent || 0) > 40,
+          pronostico_lluvia_3dias: false,
+          dias_consecutivos_sin_lluvia: 3,
           probabilidad_lluvia: gData.precipitationProbability?.percent || 5,
           temperatura_exterior: gData.temperature?.degrees || 28.5,
           temperatura_max: (gData.temperature?.degrees || 28.5) + 3,
@@ -115,9 +117,13 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
       }
 
       const rainProb12h = Math.max(...(hourly.precipitation_probability.slice(currentHour, currentHour + 12) || [5]));
+      const rainProb3dias = (daily.precipitation_probability_max?.slice(0, 3) || []).some((p: number) => p > 35);
+      const diasSinLluvia = rainProb3dias ? 0 : 3;
 
       return {
         pronostico_lluvia_12h: rainProb12h > 40,
+        pronostico_lluvia_3dias: rainProb3dias,
+        dias_consecutivos_sin_lluvia: diasSinLluvia,
         probabilidad_lluvia: Math.round(hourly.precipitation_probability[currentHour] || current.precipitation * 10 || 5),
         temperatura_exterior: Math.round(current.temperature_2m * 10) / 10,
         temperatura_max: Math.round(daily.temperature_2m_max[0] || current.temperature_2m + 3),
@@ -141,6 +147,8 @@ export async function fetchLiveWeather(): Promise<PronosticoClima> {
   // Fallback con datos realistas para Morelos
   return {
     pronostico_lluvia_12h: false,
+    pronostico_lluvia_3dias: false,
+    dias_consecutivos_sin_lluvia: 3,
     probabilidad_lluvia: 5,
     temperatura_exterior: 29.9,
     temperatura_max: 32,

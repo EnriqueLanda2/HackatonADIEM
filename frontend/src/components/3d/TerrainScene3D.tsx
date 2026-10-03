@@ -4,7 +4,7 @@ import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
-import { ParcelaDashboard } from '@/types';
+import { ParcelaDashboard, DronRiego } from '@/types';
 
 // =============================================================================
 // Semáforo y Constantes
@@ -24,12 +24,13 @@ export function getStatusFromHumidity(hum: number) {
 }
 
 const ZONE_POSITIONS: Record<string, [number, number, number]> = {
-  zona_alta: [-3.3, 0.25, 0],   // Caña (Norte)
+  zona_alta: [-3.4, 0.25, 0],   // Caña (Norte)
   zona_media: [0, 0.25, 0],     // Tomate (Centro)
-  zona_baja: [3.3, 0.25, 0],    // Arroz (Sur)
+  zona_baja: [3.4, 0.25, 0],    // Arroz (Sur)
 };
 
-const TANK_POSITION: [number, number, number] = [6.2, 0.9, -0.2];
+const TANK_POSITION: [number, number, number] = [6.4, 0.9, -0.2];
+const DRON_DOCK_POSITION: [number, number, number] = [6.4, 0.15, 2.2];
 
 // =============================================================================
 // Modelos 3D de Cultivos
@@ -215,7 +216,7 @@ function SolenoidValve3D({ isOpen, position }: { isOpen: boolean; position: [num
 }
 
 // =============================================================================
-// Parcela 3D Individual
+// Parcela 3D Individual con Etiqueta Elevada
 // =============================================================================
 interface ParcelZoneProps {
   parcela: ParcelaDashboard;
@@ -240,7 +241,6 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
   });
 
   const cropId = parcela.cultivo?.id;
-  const nombreCorto = parcela.cultivo ? parcela.cultivo.nombre.split(' ')[0] : 'En descanso';
   const isOpen = parcela.valvula_estado === 'abierta';
   const phVal = parcela.ph_suelo ?? (cropId === 'arroz' ? 6.5 : cropId === 'tomate_rojo' ? 6.2 : 6.8);
 
@@ -305,24 +305,212 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
         />
       )}
 
-      {/* Etiqueta Flotante de Telemetría */}
-      <Html position={[0, 1.7, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-black/90 text-white px-3 py-1.5 rounded-xl text-xs whitespace-nowrap border border-white/15 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1">
+      {/* Varilla / Soporte fino que conecta visualmente el terreno con la tarjeta flotante */}
+      <mesh position={[0, 1.35, 0]}>
+        <cylinderGeometry args={[0.008, 0.008, 1.7, 4]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
+      </mesh>
+
+      {/* ===================================================================== */}
+      {/* ETIQUETA FLOTANTE CON MAYOR PADDING Y ELEVACIÓN (NO TAPA EL CULTIVO)  */}
+      {/* ===================================================================== */}
+      <Html position={[0, 2.5, 0]} center style={{ pointerEvents: 'none' }}>
+        <div className="bg-[#111111]/92 text-white px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-white/20 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-zinc-100">{parcela.parcela.nombre}</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-md font-semibold text-white" style={{ backgroundColor: status.color }}>
+            <span className="font-bold text-sm tracking-tight text-white">{parcela.parcela.nombre}</span>
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white shadow-sm"
+              style={{ backgroundColor: status.color }}
+            >
               {status.label}
             </span>
           </div>
-          <div className="text-[11px] text-zinc-300 font-medium flex items-center gap-2">
-            <span>💧 {parcela.humedad_suelo.toFixed(0)}%</span>
-            <span>·</span>
-            <span>🌡️ {parcela.temperatura.toFixed(1)}°C</span>
-            <span>·</span>
-            <span>🧪 pH {phVal.toFixed(1)}</span>
+
+          <div className="text-[11px] text-zinc-300 font-medium flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+            <span className="text-sky-400 font-bold">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
+            <span className="text-zinc-500">·</span>
+            <span className="text-amber-300 font-semibold">🌡️ {parcela.temperatura.toFixed(1)}°C</span>
+            <span className="text-zinc-500">·</span>
+            <span className="text-emerald-400 font-semibold">🧪 pH {phVal.toFixed(1)}</span>
           </div>
         </div>
       </Html>
+    </group>
+  );
+}
+
+// =============================================================================
+// Modelo 3D del Dron de Riego de Emergencia y su Estación de Carga
+// =============================================================================
+function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
+  const dronRef = useRef<THREE.Group>(null);
+  const rotorsRef = useRef<THREE.Mesh[]>([]);
+  const isSpraying = dron?.estado === 'regando' || dron?.mision_activa;
+
+  // Animación del vuelo del dron sobre las parcelas
+  useFrame((state) => {
+    // Rotar hélices
+    rotorsRef.current.forEach((rotor) => {
+      if (rotor) rotor.rotation.y += isSpraying ? 0.8 : 0.05;
+    });
+
+    if (dronRef.current) {
+      if (isSpraying) {
+        // Trayectoria circular de patrullaje de riego sobre las 3 parcelas
+        const t = state.clock.elapsedTime * 0.8;
+        dronRef.current.position.x = Math.sin(t) * 4.0;
+        dronRef.current.position.z = Math.cos(t * 0.7) * 2.2;
+        dronRef.current.position.y = 3.6 + Math.sin(t * 2) * 0.15;
+        dronRef.current.rotation.y = -t;
+        dronRef.current.rotation.z = Math.cos(t) * 0.1;
+      } else {
+        // En reposo en la base de recarga
+        dronRef.current.position.set(DRON_DOCK_POSITION[0], DRON_DOCK_POSITION[1] + 0.28, DRON_DOCK_POSITION[2]);
+        dronRef.current.rotation.set(0, 0, 0);
+      }
+    }
+  });
+
+  const enBase = dron?.en_posicion_recarga ?? true;
+  const llaveAbierta = dron?.llave_paso_recarga_abierta ?? false;
+
+  return (
+    <group>
+      {/* ----------------- ESTACIÓN DE RECARGA CON SENSOR DE PRESENCIA ----------------- */}
+      <group position={DRON_DOCK_POSITION}>
+        {/* Plataforma de aterrizaje octagonal / cuadrada */}
+        <mesh position={[0, 0.05, 0]} receiveShadow>
+          <cylinderGeometry args={[0.9, 1.0, 0.1, 8]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.7} />
+        </mesh>
+
+        {/* Marca de helipuerto "H" */}
+        <mesh position={[0, 0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.8, 0.8]} />
+          <meshBasicMaterial color={enBase ? '#22c55e' : '#eab308'} wireframe />
+        </mesh>
+
+        {/* Poste con Sensor de Presencia (Ultrasónico / Óptico) */}
+        <mesh position={[0.75, 0.35, 0.6]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.7, 8]} />
+          <meshStandardMaterial color="#64748b" metalness={0.8} />
+        </mesh>
+        {/* Caja del sensor de presencia */}
+        <mesh position={[0.75, 0.7, 0.6]}>
+          <boxGeometry args={[0.12, 0.14, 0.1]} />
+          <meshStandardMaterial color="#0f172a" />
+        </mesh>
+        {/* LED indicador de presencia de objeto */}
+        <mesh position={[0.75, 0.72, 0.66]}>
+          <sphereGeometry args={[0.03, 8, 8]} />
+          <meshStandardMaterial
+            color={enBase ? '#22c55e' : '#ef4444'}
+            emissive={enBase ? '#22c55e' : '#ef4444'}
+            emissiveIntensity={1.2}
+          />
+        </mesh>
+
+        {/* Tubería y Llave de Paso para llenado de agua */}
+        <mesh position={[0.6, 0.25, -0.6]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.5, 8]} />
+          <meshStandardMaterial color="#475569" metalness={0.7} />
+        </mesh>
+        {/* Llave de paso (válvula con manija) */}
+        <mesh position={[0.6, 0.4, -0.6]}>
+          <boxGeometry args={[0.09, 0.09, 0.09]} />
+          <meshStandardMaterial
+            color={llaveAbierta ? '#3b82f6' : '#94a3b8'}
+            emissive={llaveAbierta ? '#3b82f6' : '#000000'}
+            emissiveIntensity={llaveAbierta ? 0.8 : 0}
+          />
+        </mesh>
+
+        {/* Etiqueta de la Base */}
+        <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
+          <div className="bg-black/90 text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold border border-white/10 shadow-lg whitespace-nowrap">
+            Estación Dron: {enBase ? '🟢 Objeto presente' : '⚪ Libre'}
+          </div>
+        </Html>
+      </group>
+
+      {/* ----------------- DRON AGRÍCOLA QUADCOPTER ----------------- */}
+      <group ref={dronRef}>
+        {/* Cuerpo central del dron */}
+        <mesh castShadow>
+          <boxGeometry args={[0.45, 0.12, 0.45]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.5} roughness={0.3} />
+        </mesh>
+
+        {/* Tanque de agua del dron (cilindro central translúcido) */}
+        <mesh position={[0, 0.11, 0]}>
+          <cylinderGeometry args={[0.16, 0.16, 0.18, 12]} />
+          <meshStandardMaterial color="#38bdf8" transparent opacity={0.75} roughness={0.1} />
+        </mesh>
+
+        {/* Brazos para los 4 motores */}
+        {[
+          [0.35, 0, 0.35],
+          [-0.35, 0, 0.35],
+          [0.35, 0, -0.35],
+          [-0.35, 0, -0.35],
+        ].map(([bx, by, bz], idx) => (
+          <group key={idx} position={[bx, by, bz]}>
+            {/* Brazo de fibra de carbono */}
+            <mesh position={[-bx * 0.3, 0, -bz * 0.3]} rotation={[0, Math.atan2(bz, bx), 0]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.4, 6]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.9} />
+            </mesh>
+            {/* Motor */}
+            <mesh position={[0, 0.04, 0]}>
+              <cylinderGeometry args={[0.05, 0.05, 0.08, 8]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} />
+            </mesh>
+            {/* Hélice giratoria */}
+            <mesh
+              ref={(el) => {
+                if (el) rotorsRef.current[idx] = el;
+              }}
+              position={[0, 0.09, 0]}
+            >
+              <boxGeometry args={[0.4, 0.008, 0.04]} />
+              <meshBasicMaterial color="#0f172a" />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Tren de aterrizaje */}
+        <mesh position={[0, -0.12, 0.18]}>
+          <boxGeometry args={[0.5, 0.02, 0.03]} />
+          <meshStandardMaterial color="#334155" />
+        </mesh>
+        <mesh position={[0, -0.12, -0.18]}>
+          <boxGeometry args={[0.5, 0.02, 0.03]} />
+          <meshStandardMaterial color="#334155" />
+        </mesh>
+
+        {/* Boquillas de aspersión y partículas de agua si está en misión */}
+        {isSpraying && (
+          <group position={[0, -0.2, 0]}>
+            <Sparkles
+              count={120}
+              scale={[3.0, 2.5, 3.0]}
+              size={4.0}
+              speed={3.5}
+              opacity={0.85}
+              color="#38bdf8"
+            />
+          </group>
+        )}
+
+        {/* Etiqueta del Dron en Vuelo */}
+        {isSpraying && (
+          <Html position={[0, 0.7, 0]} center style={{ pointerEvents: 'none' }}>
+            <div className="bg-sky-950/90 text-sky-200 border border-sky-400/50 px-2.5 py-1 rounded-full text-[10px] font-bold shadow-lg animate-pulse whitespace-nowrap">
+              🚁 RIEGO POR DRON EN CURSO
+            </div>
+          </Html>
+        )}
+      </group>
     </group>
   );
 }
@@ -396,6 +584,7 @@ interface TerrainScene3DProps {
   parcelas: ParcelaDashboard[];
   tanqueNivel: number;
   tanqueCapacidad: number;
+  dron?: DronRiego;
   onParcelaSelect?: (parcelaId: string) => void;
   selectedParcelaId?: string;
 }
@@ -403,38 +592,41 @@ interface TerrainScene3DProps {
 export default function TerrainScene3D({
   parcelas,
   tanqueNivel,
+  dron,
   onParcelaSelect,
   selectedParcelaId,
 }: TerrainScene3DProps) {
   return (
-    <div className="relative w-full h-full min-h-[420px] md:min-h-[460px] rounded-xl overflow-hidden bg-[#18181b]">
+    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#18181b]">
       <Canvas
         shadows
-        camera={{ position: [0, 9.2, 9.8], fov: 43 }}
+        camera={{ position: [0, 9.8, 10.2], fov: 44 }}
         gl={{ antialias: true }}
       >
         <color attach="background" args={['#18181b']} />
 
         <ambientLight intensity={0.75} />
         <directionalLight
-          position={[7, 14, 8]}
+          position={[8, 15, 8]}
           intensity={1.4}
           castShadow
           shadow-mapSize={[1024, 1024]}
         />
         <pointLight position={[-6, 6, -3]} intensity={0.4} color="#60a5fa" />
 
+        {/* Suelo base de la maqueta agrícola */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.16, 0]} receiveShadow>
-          <planeGeometry args={[17, 9.5]} />
+          <planeGeometry args={[18, 10]} />
           <meshStandardMaterial color="#27272a" roughness={0.95} />
         </mesh>
 
+        {/* Caminos de grava entre parcelas */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.15, 0]} receiveShadow>
-          <planeGeometry args={[17, 1.2]} />
+          <planeGeometry args={[18, 1.2]} />
           <meshStandardMaterial color="#3f3f46" roughness={0.9} />
         </mesh>
 
-        {/* Renderizado de parcelas con soporte para múltiples parcelas dinámicas */}
+        {/* Renderizado de parcelas dinámicas */}
         {parcelas.map((p, idx) => {
           const zoneKey = p.parcela.zona_3d || 'zona_media';
           const basePos = ZONE_POSITIONS[zoneKey] || [0, 0.25, 0];
@@ -458,19 +650,23 @@ export default function TerrainScene3D({
           );
         })}
 
+        {/* Cisterna volumétrica y tuberías */}
         <CisternAndPiping nivel={tanqueNivel} />
         <WaterPipes />
+
+        {/* Dron Agrícola de Emergencia y Base con Sensor de Presencia */}
+        <DroneAndDock3D dron={dron} />
 
         <OrbitControls
           enablePan={false}
           maxPolarAngle={Math.PI / 2.25}
           minDistance={7}
-          maxDistance={20}
+          maxDistance={22}
         />
       </Canvas>
 
-      {/* Leyenda fija */}
-      <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-md px-3 py-2 rounded-lg border border-white/10 flex items-center gap-3 text-[11px] text-zinc-300 pointer-events-none">
+      {/* Leyenda fija en la esquina inferior */}
+      <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/10 flex items-center gap-3.5 text-[11px] text-zinc-300 pointer-events-none shadow-xl">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm bg-[#ef4444]" />
           <span>Crítico &lt;35%</span>

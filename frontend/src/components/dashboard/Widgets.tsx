@@ -115,7 +115,7 @@ export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
         </svg>
-        <span>Cisterna</span>
+        <span>Cisterna Principal</span>
       </div>
 
       <div className="flex items-baseline gap-2.5 mb-3">

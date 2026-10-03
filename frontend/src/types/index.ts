@@ -42,14 +42,12 @@ export interface Parcela {
   modo_operacion: ModoOperacion;
   propietario: string;
   notas?: string;
-  // Sensores configurados
   sensores_activos?: {
     humedad_suelo: boolean;
     humedad_ambiental: boolean;
     temperatura: boolean;
     ph_suelo: boolean;
   };
-  // Datos en tiempo real (populados desde sensores)
   humedad_actual?: number;
   temperatura_actual?: number;
   humedad_ambiental_actual?: number;
@@ -69,41 +67,20 @@ export interface Sensor {
   posicion_x: number;
   posicion_y: number;
   posicion_z: number;
+  ultima_lectura?: number;
+  ultima_lectura_at?: string;
   activo: boolean;
-  ultimo_valor: number;
-  ultima_lectura: string;
-  valor_minimo: number;
-  valor_maximo: number;
-  unidad: string;
 }
 
-// ---- Lecturas ----
-export type FuenteLectura = 'sensor' | 'simulacion' | 'manual';
-
-export interface Lectura {
+export interface LecturaSensor {
   id: string;
   sensor_id: string;
   valor: number;
   unidad: string;
   timestamp: string;
-  fuente: FuenteLectura;
-  es_valido: boolean;
 }
 
-// ---- Tanques de Agua ----
-export interface TanqueAgua {
-  id: string;
-  nombre: string;
-  tipo: 'cisterna' | 'pozo' | 'tanque';
-  capacidad_litros: number;
-  nivel_actual_porcentaje: number;
-  nivel_critico_porcentaje: number;
-  nivel_alerta_porcentaje: number;
-  sensor_id?: string;
-  activo: boolean;
-}
-
-// ---- Válvulas ----
+// ---- Actuadores / Válvulas ----
 export type EstadoValvula = 'abierta' | 'cerrada';
 
 export interface Valvula {
@@ -118,17 +95,43 @@ export interface Valvula {
   modo: ModoOperacion;
   pin_rele: number;
   voltaje: string;
-  ultima_apertura?: string;
-  ultimo_cierre?: string;
   activa: boolean;
 }
 
-// ---- Eventos de Riego ----
+// ---- Reservas de Agua (Cisterna) ----
+export interface TanqueAgua {
+  id: string;
+  nombre: string;
+  tipo: 'cisterna' | 'pozo' | 'tanque_elevado';
+  capacidad_litros: number;
+  nivel_actual_porcentaje: number;
+  nivel_critico_porcentaje: number;
+  nivel_alerta_porcentaje: number;
+  activo: boolean;
+}
+
+// ---- Sistema de Dron de Riego de Emergencia ----
+export interface DronRiego {
+  id: string;
+  nombre: string;
+  estado: 'en_base' | 'regando' | 'cargando_agua' | 'emergencia';
+  nivel_agua_porcentaje: number;
+  capacidad_litros: number;
+  bateria_porcentaje: number;
+  en_posicion_recarga: boolean;       // Sensor ultrasónico/proximidad que detecta objeto presente en la base
+  llave_paso_recarga_abierta: boolean; // Válvula de suministro de agua al dron (bloqueada si en_posicion_recarga === false)
+  mision_activa: boolean;
+  dias_sin_lluvia: number;
+  requiere_riego_emergencia: boolean;
+  ultimo_despacho?: string;
+}
+
+// ---- Historial de Riego ----
 export interface EventoRiego {
   id: string;
   parcela_id: string;
   valvula_id: string;
-  tipo: 'automatico' | 'manual' | 'programado';
+  tipo: 'automatico' | 'manual' | 'programado' | 'dron_emergencia';
   accion: 'apertura' | 'cierre';
   humedad_suelo_al_evento: number;
   nivel_tanque_al_evento: number;
@@ -141,7 +144,7 @@ export interface EventoRiego {
 }
 
 // ---- Alertas ----
-export type TipoAlerta = 'prevencion_organica' | 'nivel_reserva' | 'temperatura' | 'humedad_critica' | 'pronostico';
+export type TipoAlerta = 'prevencion_organica' | 'nivel_reserva' | 'temperatura' | 'humedad_critica' | 'pronostico' | 'dron_vacio' | 'dron_emergencia';
 export type Severidad = 'baja' | 'media' | 'alta' | 'critica';
 
 export interface Alerta {
@@ -177,6 +180,8 @@ export interface PronosticoClimaDia {
 
 export interface PronosticoClima {
   pronostico_lluvia_12h: boolean;
+  pronostico_lluvia_3dias: boolean;    // Flag para riego por dron de emergencia (>= 3 días sin lluvia)
+  dias_consecutivos_sin_lluvia: number;
   probabilidad_lluvia: number;
   temperatura_exterior: number;
   temperatura_max?: number;
@@ -197,10 +202,12 @@ export interface PronosticoClima {
 export interface DashboardSummary {
   parcelas: ParcelaDashboard[];
   tanques: TanqueAgua[];
+  dron: DronRiego;
   alertas_activas: Alerta[];
   clima: PronosticoClima;
   eventos_recientes: EventoRiego[];
   estadisticas: Estadisticas;
+  modo_global_riego: 'automatico' | 'manual';
 }
 
 export interface ParcelaDashboard {
@@ -246,6 +253,12 @@ export interface DatosSimulacion {
   valvula_cana: boolean;
   valvula_tomate: boolean;
   valvula_arroz: boolean;
+  // Dron y sensor de presencia
+  dron_en_base?: boolean;
+  dron_nivel_agua?: number;
+  dron_llave_paso?: boolean;
+  modo_riego_auto?: boolean;
+  dias_sin_lluvia_sim?: number;
   [key: string]: any;
 }
 
@@ -263,12 +276,12 @@ export interface CreateParcelaDTO {
   notas?: string;
   sensores_config: {
     humedad_suelo: boolean;
-    humedad_suelo_valor: number;
     humedad_ambiental: boolean;
-    humedad_ambiental_valor: number;
     temperatura: boolean;
-    temperatura_valor: number;
     ph_suelo: boolean;
+    humedad_suelo_valor: number;
+    humedad_ambiental_valor: number;
+    temperatura_valor: number;
     ph_suelo_valor: number;
   };
 }
