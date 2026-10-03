@@ -1,317 +1,222 @@
 'use client';
 
-import { PronosticoClima, Estadisticas, TanqueAgua } from '@/types';
+import { PronosticoClima, TanqueAgua } from '@/types';
 
 // =============================================================================
-// Componente: Panel de Clima
+// Header / Barra Superior
 // =============================================================================
-
-interface WeatherPanelProps {
-  clima: PronosticoClima;
+interface HeaderProps {
+  backendStatus: boolean;
+  checking: boolean;
+  onRefresh?: () => void;
 }
 
-export function WeatherPanel({ clima }: WeatherPanelProps) {
+export function Header({ backendStatus, onRefresh }: HeaderProps) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
-      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center gap-1">
-        ☁️ Pronóstico Meteorológico
-      </h3>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="text-center">
-          <div className="text-3xl mb-1">
-            {clima.pronostico_lluvia_12h ? '🌧️' : '☀️'}
-          </div>
-          <div className="text-[10px] text-white/50">
-            {clima.pronostico_lluvia_12h ? 'Lluvia esperada' : 'Sin lluvia'}
-          </div>
-          <div className="text-xs text-white/70 font-medium">
-            {clima.probabilidad_lluvia}% prob.
+    <header className="bg-[#111111] border-b border-white/5 py-4">
+      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        {/* Logo y Nombre */}
+        <div className="flex items-center gap-3">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-emerald-500"
+          >
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+          </svg>
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-white font-bold text-xl tracking-tight">
+              Riego Inteligente
+            </h1>
+            <span className="text-zinc-500 text-base font-normal">Morelos</span>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/50">🌡️ Exterior</span>
-            <span className="text-xs text-white font-medium">
-              {clima.temperatura_exterior.toFixed(1)}°C
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/50">💨 Viento</span>
-            <span className="text-xs text-white font-medium">
-              {clima.velocidad_viento.toFixed(1)} km/h
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-white/50">💧 HR Ext</span>
-            <span className="text-xs text-white font-medium">
-              {clima.humedad_relativa_exterior.toFixed(0)}%
-            </span>
-          </div>
+        {/* Indicadores de estado y acción */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs px-3 py-1 rounded-full font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
+            {backendStatus ? 'En línea' : 'Modo demo'}
+          </span>
+          <button
+            onClick={onRefresh}
+            className="flex items-center gap-2 text-xs px-4 py-1.5 rounded-full border border-white/10 text-zinc-300 hover:bg-white/5 hover:border-white/20 transition-all font-medium"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            Actualizar
+          </button>
         </div>
       </div>
-
-      {clima.pronostico_lluvia_12h && (
-        <div className="mt-3 bg-blue-500/20 border border-blue-500/30 rounded-lg p-2 text-center">
-          <p className="text-[10px] text-blue-300">
-            🌧️ Se pronostica lluvia en las próximas 12h. Riegos automáticos
-            suspendidos.
-          </p>
-        </div>
-      )}
-
-      <div className="text-[8px] text-white/20 mt-2 text-right">
-        Actualizado: {new Date(clima.consultado_at).toLocaleTimeString('es-MX')}
-      </div>
-    </div>
+    </header>
   );
 }
 
 // =============================================================================
-// Componente: Panel de Tanque de Agua
+// Panel de Cisterna
 // =============================================================================
-
-interface TankPanelProps {
-  tanque: TanqueAgua;
-}
-
-export function TankPanel({ tanque }: TankPanelProps) {
+export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
   const nivel = tanque.nivel_actual_porcentaje;
-  const isCritical = nivel < tanque.nivel_critico_porcentaje;
-  const isWarning = nivel < tanque.nivel_alerta_porcentaje;
+  const isCritical = nivel < 25;
+  const volumenActual = ((tanque.capacidad_litros * nivel) / 100 / 1000).toFixed(1);
+  const capacidadTotal = (tanque.capacidad_litros / 1000).toFixed(0);
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
-      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center gap-1">
-        🏗️ {tanque.nombre}
-      </h3>
-
-      {/* Visual del tanque */}
-      <div className="flex items-end justify-center gap-2 mb-3">
-        <div className="relative w-16 h-24 border-2 border-white/30 rounded-b-lg overflow-hidden">
-          <div
-            className={`absolute bottom-0 w-full transition-all duration-1000 ${
-              isCritical
-                ? 'bg-red-500/60 animate-pulse'
-                : isWarning
-                ? 'bg-orange-400/60'
-                : 'bg-blue-500/60'
-            }`}
-            style={{ height: `${nivel}%` }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-white font-bold text-lg drop-shadow-lg">
-              {nivel.toFixed(0)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="text-[10px] text-white/40 space-y-1">
-          <div>Cap: {(tanque.capacidad_litros / 1000).toFixed(0)}m³</div>
-          <div>
-            Vol: {((tanque.capacidad_litros * nivel) / 100 / 1000).toFixed(1)}m³
-          </div>
-        </div>
+    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 flex flex-col justify-between">
+      <div className="flex items-center gap-2 text-white font-semibold text-base mb-3">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-zinc-400"
+        >
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+        <span>Cisterna</span>
       </div>
 
-      {isCritical && (
-        <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-2 text-center animate-pulse">
-          <p className="text-[10px] text-red-300 font-bold">
-            🚨 NIVEL CRÍTICO - Riegos no críticos bloqueados
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
+      <div className="flex items-baseline gap-2.5 mb-3">
+        <span className="text-4xl font-bold tracking-tight text-white">
+          {nivel.toFixed(0)}%
+        </span>
+        <span className="text-sm text-zinc-400 font-normal">
+          {volumenActual} / {capacidadTotal} m³
+        </span>
+      </div>
 
-// =============================================================================
-// Componente: Panel de Estadísticas
-// =============================================================================
-
-interface StatsPanelProps {
-  stats: Estadisticas;
-}
-
-export function StatsPanel({ stats }: StatsPanelProps) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
-      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center gap-1">
-        📊 Estadísticas del Día
-      </h3>
-      <div className="grid grid-cols-3 gap-2">
-        <StatItem
-          icon="🌱"
-          label="Parcelas"
-          value={`${stats.parcelas_activas}/${stats.total_parcelas}`}
+      {/* Barra de progreso de la cisterna */}
+      <div className="w-full bg-zinc-800/80 h-2 rounded-full overflow-hidden">
+        <div
+          className={`h-full transition-all duration-1000 ${
+            isCritical ? 'bg-rose-500' : 'bg-blue-500'
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, nivel))}%` }}
         />
-        <StatItem
-          icon="💧"
-          label="Válvulas"
-          value={`${stats.valvulas_abiertas} abiertas`}
-          highlight={stats.valvulas_abiertas > 0}
-        />
-        <StatItem
-          icon="🔔"
-          label="Alertas"
-          value={`${stats.alertas_sin_leer}`}
-          highlight={stats.alertas_sin_leer > 0}
-          highlightColor="red"
-        />
-        <StatItem icon="💦" label="Litros hoy" value={`${stats.litros_hoy}L`} />
-        <StatItem icon="🚿" label="Riegos hoy" value={`${stats.riegos_hoy}`} />
-        <StatItem icon="📏" label="Superficie" value="15.5 ha" />
       </div>
     </div>
   );
 }
 
-function StatItem({
-  icon,
-  label,
-  value,
-  highlight,
-  highlightColor = 'green',
+// =============================================================================
+// Panel de Clima
+// =============================================================================
+export function WeatherPanel({ clima }: { clima: PronosticoClima }) {
+  return (
+    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 flex flex-col justify-between">
+      <div className="flex items-center gap-2 text-white font-semibold text-base mb-3">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-zinc-400"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+        <span>Clima</span>
+      </div>
+
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between items-center">
+          <span className="text-zinc-400">Exterior</span>
+          <span className="text-white font-medium">
+            {clima.temperatura_exterior.toFixed(1)} °C
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-zinc-400">Viento</span>
+          <span className="text-white font-medium">
+            {clima.velocidad_viento.toFixed(1)} km/h
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-zinc-400">Lluvia</span>
+          <span className="text-white font-medium">{clima.probabilidad_lluvia} %</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Panel de Simulación (Ajuste rápido de sensores)
+// =============================================================================
+export function SimulationPanel({
+  onUpdateData,
+  data,
 }: {
-  icon: string;
-  label: string;
-  value: string;
-  highlight?: boolean;
-  highlightColor?: 'green' | 'red';
-}) {
-  return (
-    <div className="bg-black/20 rounded-lg p-2 text-center">
-      <div className="text-lg">{icon}</div>
-      <div
-        className={`text-sm font-bold ${
-          highlight
-            ? highlightColor === 'red'
-              ? 'text-red-400'
-              : 'text-green-400'
-            : 'text-white'
-        }`}
-      >
-        {value}
-      </div>
-      <div className="text-[10px] text-white/40">{label}</div>
-    </div>
-  );
-}
-
-// =============================================================================
-// Componente: Simulación Manual (para presentación)
-// =============================================================================
-
-interface SimulationPanelProps {
   onUpdateData: (key: string, value: number) => void;
-  data: Record<string, number>;
-}
-
-export function SimulationPanel({ onUpdateData, data }: SimulationPanelProps) {
+  data: any;
+}) {
   const sliders = [
-    { key: 'humedad_cana', label: '🌾 Humedad Caña', min: 0, max: 100 },
-    { key: 'humedad_tomate', label: '🍅 Humedad Tomate', min: 0, max: 100 },
-    { key: 'humedad_arroz', label: '🍚 Humedad Arroz', min: 0, max: 100 },
-    { key: 'nivel_tanque', label: '🏗️ Nivel Tanque', min: 0, max: 100 },
-    { key: 'temperatura', label: '🌡️ Temperatura', min: 15, max: 40 },
-    { key: 'humedad_ambiental', label: '🌫️ HR Ambiental', min: 20, max: 100 },
+    { key: 'humedad_cana', label: 'Humedad Caña', min: 0, max: 100 },
+    { key: 'humedad_tomate', label: 'Humedad Tomate', min: 0, max: 100 },
+    { key: 'humedad_arroz', label: 'Humedad Arroz', min: 0, max: 100 },
+    { key: 'nivel_tanque', label: 'Nivel Cisterna', min: 0, max: 100 },
   ];
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-sm">
-      <h3 className="text-white/70 text-xs font-medium mb-3 flex items-center gap-2">
-        🎮 Panel de Simulación
-        <span className="bg-purple-500/30 text-purple-300 text-[10px] px-2 py-0.5 rounded-full">
-          DEMO
-        </span>
+    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 mt-6">
+      <h3 className="text-white text-sm font-semibold mb-3 flex items-center justify-between">
+        <span>🎮 Simulación de Sensores (Tinkercad)</span>
+        <span className="text-[10px] text-zinc-500 font-normal">Ajuste en vivo</span>
       </h3>
-      <p className="text-[10px] text-white/40 mb-3">
-        Ajusta los valores manualmente para simular datos de Tinkercad
-      </p>
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {sliders.map(({ key, label, min, max }) => (
           <div key={key}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[10px] text-white/60">{label}</label>
-              <span className="text-xs text-white font-mono">
-                {(data[key] ?? 50).toFixed(key === 'temperatura' ? 1 : 0)}
-                {key === 'temperatura' ? '°C' : '%'}
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-zinc-400">{label}</span>
+              <span className="text-white font-mono font-medium">
+                {(data[key] ?? 50).toFixed(0)}%
               </span>
             </div>
             <input
               type="range"
               min={min}
               max={max}
-              step={key === 'temperatura' ? 0.5 : 1}
               value={data[key] ?? 50}
               onChange={(e) => onUpdateData(key, parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                [&::-webkit-slider-thumb]:appearance-none
-                [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
-                [&::-webkit-slider-thumb]:rounded-full
-                [&::-webkit-slider-thumb]:bg-white
-                [&::-webkit-slider-thumb]:shadow-lg
-                [&::-webkit-slider-thumb]:cursor-pointer"
+              className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
           </div>
         ))}
       </div>
     </div>
-  );
-}
-
-// =============================================================================
-// Componente: Header / Navbar
-// =============================================================================
-
-interface HeaderProps {
-  backendStatus: boolean;
-  checking: boolean;
-}
-
-export function Header({ backendStatus, checking }: HeaderProps) {
-  return (
-    <header className="bg-black/30 border-b border-white/10 backdrop-blur-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl">🌱</div>
-          <div>
-            <h1 className="text-white font-bold text-lg leading-tight">
-              Riego Inteligente
-            </h1>
-            <p className="text-white/40 text-[10px]">
-              Estado de Morelos · Sistema de Automatización
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Estado de conexión */}
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                checking
-                  ? 'bg-yellow-500 animate-pulse'
-                  : backendStatus
-                  ? 'bg-green-500'
-                  : 'bg-orange-500'
-              }`}
-            />
-            <span className="text-[10px] text-white/50">
-              {checking
-                ? 'Conectando...'
-                : backendStatus
-                ? 'API Conectada'
-                : 'Modo Demo'}
-            </span>
-          </div>
-
-          {/* Hora */}
-          <div className="text-white/40 text-xs font-mono hidden sm:block">
-            {new Date().toLocaleTimeString('es-MX')}
-          </div>
-        </div>
-      </div>
-    </header>
   );
 }

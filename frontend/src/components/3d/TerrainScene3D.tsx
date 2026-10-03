@@ -2,214 +2,108 @@
 
 import { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, Environment } from '@react-three/drei';
+import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ParcelaDashboard } from '@/types';
-import { getColorHumedad } from '@/lib/crop-profiles';
 
 // =============================================================================
-// Componente: Terreno 3D con mapeo de humedad
+// Semáforo de Colores de Humedad
 // =============================================================================
+export const HUMIDITY_COLORS = {
+  critico: '#ef4444',   // <35% Rojo
+  bajo: '#f59e0b',      // 35-50% Amarillo / Ámbar
+  optimo: '#22c55e',    // 50-75% Verde
+  saturado: '#3b82f6',  // >75% Azul
+};
 
-interface TerrainZoneProps {
+export function getStatusFromHumidity(hum: number) {
+  if (hum < 35) return { label: 'Crítico', color: HUMIDITY_COLORS.critico, key: 'critico' };
+  if (hum < 50) return { label: 'Bajo', color: HUMIDITY_COLORS.bajo, key: 'bajo' };
+  if (hum <= 75) return { label: 'Óptimo', color: HUMIDITY_COLORS.optimo, key: 'optimo' };
+  return { label: 'Saturado', color: HUMIDITY_COLORS.saturado, key: 'saturado' };
+}
+
+// Posiciones espaciales en la maqueta 3D
+const ZONE_POSITIONS: Record<string, [number, number, number]> = {
+  zona_alta: [-3.2, 0.15, 0],   // Caña (Norte)
+  zona_media: [0, 0.15, 0],     // Tomate (Centro)
+  zona_baja: [3.2, 0.15, 0],    // Arroz (Sur)
+};
+
+const TANK_POSITION: [number, number, number] = [6.2, 0.8, -0.5];
+
+// =============================================================================
+// Parcela 3D Individual
+// =============================================================================
+interface ParcelMeshProps {
   parcela: ParcelaDashboard;
   position: [number, number, number];
-  size: [number, number];
   onClick?: () => void;
-  selected?: boolean;
 }
 
-function TerrainZone({ parcela, position, size, onClick, selected }: TerrainZoneProps) {
+function ParcelMesh({ parcela, position, onClick }: ParcelMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const colorRef = useRef(new THREE.Color());
+  const colorRef = useRef(new THREE.Color(getStatusFromHumidity(parcela.humedad_suelo).color));
+  const [hovered, setHovered] = useState(false);
 
-  // Calcular color basado en humedad
-  const targetColor = useMemo(() => {
-    return getColorHumedad(parcela.humedad_suelo, parcela.cultivo);
-  }, [parcela.humedad_suelo, parcela.cultivo]);
+  const status = useMemo(() => getStatusFromHumidity(parcela.humedad_suelo), [parcela.humedad_suelo]);
 
-  // Animación suave de color
+  // Transición suave (lerp) del color al cambiar el valor
   useFrame(() => {
     if (meshRef.current) {
-      const material = meshRef.current.material as THREE.MeshStandardMaterial;
-      colorRef.current.lerp(new THREE.Color(targetColor), 0.05);
-      material.color.copy(colorRef.current);
+      const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+      colorRef.current.lerp(new THREE.Color(status.color), 0.08);
+      mat.color.copy(colorRef.current);
     }
   });
 
-  // Generar geometría con variación de altura (low-poly terrain)
-  const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(size[0], size[1], 12, 12);
-    const posAttr = geo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-      const x = posAttr.getX(i);
-      const y = posAttr.getY(i);
-      // Variación de altura basada en posición (simulando relieve)
-      const height =
-        Math.sin(x * 0.5) * 0.3 +
-        Math.cos(y * 0.7) * 0.2 +
-        Math.random() * 0.1;
-      posAttr.setZ(i, height + position[1] * 0.3);
-    }
-    geo.computeVertexNormals();
-    return geo;
-  }, [size, position]);
+  const nombreCorto = parcela.cultivo.nombre.split(' ')[0];
 
   return (
     <group position={position}>
+      {/* Parcela con bordes redondeados y relieve */}
       <mesh
         ref={meshRef}
-        geometry={geometry}
         rotation={[-Math.PI / 2, 0, 0]}
         onClick={onClick}
-        castShadow
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setHovered(false);
+          document.body.style.cursor = 'auto';
+        }}
         receiveShadow
+        castShadow
       >
+        <planeGeometry args={[2.7, 3.8]} />
         <meshStandardMaterial
-          color={targetColor}
-          roughness={0.8}
-          metalness={0.1}
-          flatShading
+          roughness={0.4}
+          metalness={parcela.humedad_suelo > 75 ? 0.6 : 0.1}
         />
       </mesh>
 
-      {/* Etiqueta del cultivo */}
-      <Html
-        position={[0, 1.5, 0]}
-        center
-        distanceFactor={8}
-        style={{ pointerEvents: 'none' }}
-      >
-        <div
-          className={`bg-black/80 text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap backdrop-blur-sm border ${
-            selected ? 'border-yellow-400' : 'border-white/20'
-          }`}
-        >
-          <div className="font-bold">
-            {parcela.cultivo.icono} {parcela.parcela.nombre}
-          </div>
-          <div className="text-[10px] opacity-80">
-            💧 {parcela.humedad_suelo.toFixed(0)}% | 🌡️{' '}
-            {parcela.temperatura.toFixed(1)}°C
-          </div>
-        </div>
-      </Html>
+      {/* Borde / Marco de la parcela */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+        <planeGeometry args={[2.9, 4.0]} />
+        <meshBasicMaterial color={hovered ? '#ffffff' : '#27272a'} />
+      </mesh>
 
-      {/* Borde de selección */}
-      {selected && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <planeGeometry args={[size[0] + 0.2, size[1] + 0.2]} />
-          <meshBasicMaterial
-            color="#FFD700"
-            transparent
-            opacity={0.3}
-            side={THREE.DoubleSide}
-          />
+      {/* Riego animado (indicador si la válvula está abierta) */}
+      {parcela.valvula_estado === 'abierta' && (
+        <mesh position={[0, 0.3, 0]}>
+          <ringGeometry args={[0.3, 0.45, 16]} />
+          <meshBasicMaterial color="#60a5fa" transparent opacity={0.6} side={THREE.DoubleSide} />
         </mesh>
       )}
-    </group>
-  );
-}
 
-// =============================================================================
-// Componente: Marcador de Válvula 3D
-// =============================================================================
-
-interface ValveMarkerProps {
-  position: [number, number, number];
-  isOpen: boolean;
-  label: string;
-}
-
-function ValveMarker({ position, isOpen, label }: ValveMarkerProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const particlesRef = useRef<THREE.Points>(null);
-
-  // Animación de pulsación cuando está abierta
-  useFrame((state) => {
-    if (meshRef.current) {
-      if (isOpen) {
-        meshRef.current.scale.setScalar(
-          1 + Math.sin(state.clock.elapsedTime * 3) * 0.15
-        );
-      } else {
-        meshRef.current.scale.setScalar(1);
-      }
-    }
-
-    // Animación de partículas de agua
-    if (particlesRef.current && isOpen) {
-      particlesRef.current.rotation.y += 0.02;
-      const positions = particlesRef.current.geometry.attributes.position;
-      for (let i = 0; i < positions.count; i++) {
-        let y = positions.getY(i);
-        y -= 0.03;
-        if (y < -0.5) y = 1;
-        positions.setY(i, y);
-      }
-      positions.needsUpdate = true;
-    }
-  });
-
-  // Partículas de agua
-  const particleGeometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(30 * 3);
-    for (let i = 0; i < 30; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 0.8;
-      positions[i * 3 + 1] = Math.random() * 1;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 0.8;
-    }
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geo;
-  }, []);
-
-  return (
-    <group position={position}>
-      {/* Cuerpo de la válvula */}
-      <mesh ref={meshRef} castShadow>
-        <cylinderGeometry args={[0.15, 0.2, 0.4, 8]} />
-        <meshStandardMaterial
-          color={isOpen ? '#4CAF50' : '#F44336'}
-          emissive={isOpen ? '#4CAF50' : '#F44336'}
-          emissiveIntensity={isOpen ? 0.3 : 0.1}
-          metalness={0.6}
-          roughness={0.3}
-        />
-      </mesh>
-
-      {/* Indicador superior */}
-      <mesh position={[0, 0.3, 0]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial
-          color={isOpen ? '#00E676' : '#FF1744'}
-          emissive={isOpen ? '#00E676' : '#FF1744'}
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-
-      {/* Partículas de agua (solo cuando abierta) */}
-      {isOpen && (
-        <points ref={particlesRef} geometry={particleGeometry}>
-          <pointsMaterial
-            color="#64B5F6"
-            size={0.05}
-            transparent
-            opacity={0.6}
-          />
-        </points>
-      )}
-
-      {/* Etiqueta */}
-      <Html position={[0, 0.7, 0]} center distanceFactor={6}>
-        <div
-          className={`px-2 py-1 rounded text-[10px] font-bold ${
-            isOpen
-              ? 'bg-green-500/90 text-white'
-              : 'bg-red-500/90 text-white'
-          }`}
-        >
-          {isOpen ? '💧 ABIERTA' : '🔒 CERRADA'}
+      {/* Etiqueta HTML limpia encima de la parcela */}
+      <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
+        <div className="bg-black/85 text-white px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wide whitespace-nowrap border border-white/10 shadow-lg backdrop-blur-sm">
+          {nombreCorto} {parcela.humedad_suelo.toFixed(0)}%
         </div>
       </Html>
     </group>
@@ -217,68 +111,47 @@ function ValveMarker({ position, isOpen, label }: ValveMarkerProps) {
 }
 
 // =============================================================================
-// Componente: Tanque de Agua 3D
+// Cisterna 3D
 // =============================================================================
-
-interface WaterTankProps {
-  nivel: number;
-  capacidad: number;
-  position: [number, number, number];
-}
-
-function WaterTank({ nivel, position }: WaterTankProps) {
+function Tank3D({ nivel, position }: { nivel: number; position: [number, number, number] }) {
   const waterRef = useRef<THREE.Mesh>(null);
+  const isCritical = nivel < 25;
 
   useFrame((state) => {
     if (waterRef.current) {
-      // Ondulación suave del agua
-      waterRef.current.position.y =
-        -0.5 + (nivel / 100) * 1 + Math.sin(state.clock.elapsedTime * 2) * 0.02;
+      waterRef.current.position.y = -0.7 + (nivel / 100) * 1.4 + Math.sin(state.clock.elapsedTime * 2) * 0.02;
     }
   });
 
-  const nivelCritico = nivel < 20;
-  const nivelAlerta = nivel < 35;
-
   return (
     <group position={position}>
-      {/* Estructura del tanque (cilindro transparente) */}
-      <mesh>
-        <cylinderGeometry args={[0.6, 0.6, 2, 16]} />
+      {/* Contenedor transparente de la cisterna */}
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.9, 0.9, 1.6, 24]} />
         <meshStandardMaterial
-          color="#90A4AE"
+          color="#38bdf8"
           transparent
-          opacity={0.3}
-          side={THREE.DoubleSide}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-
-      {/* Agua dentro del tanque */}
-      <mesh ref={waterRef} position={[0, -0.5 + (nivel / 100) * 1, 0]}>
-        <cylinderGeometry args={[0.55, 0.55, (nivel / 100) * 2, 16]} />
-        <meshStandardMaterial
-          color={nivelCritico ? '#F44336' : nivelAlerta ? '#FF9800' : '#2196F3'}
-          transparent
-          opacity={0.7}
-          metalness={0.1}
+          opacity={0.35}
           roughness={0.1}
+          metalness={0.8}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Etiqueta */}
-      <Html position={[0, 1.5, 0]} center distanceFactor={8}>
-        <div
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-            nivelCritico
-              ? 'bg-red-600 text-white animate-pulse'
-              : nivelAlerta
-              ? 'bg-orange-500 text-white'
-              : 'bg-blue-600 text-white'
-          }`}
-        >
-          🏗️ Cisterna: {nivel.toFixed(0)}%
+      {/* Agua interna */}
+      <mesh ref={waterRef} position={[0, -0.7 + (nivel / 100) * 1.4, 0]}>
+        <cylinderGeometry args={[0.85, 0.85, Math.max(0.05, (nivel / 100) * 1.5), 24]} />
+        <meshStandardMaterial
+          color={isCritical ? '#ef4444' : '#2563eb'}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+
+      {/* Etiqueta flotante */}
+      <Html position={[0, 1.4, 0]} center style={{ pointerEvents: 'none' }}>
+        <div className="bg-black/85 text-white px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap border border-white/10 shadow-lg backdrop-blur-sm">
+          Cisterna {nivel.toFixed(0)}%
         </div>
       </Html>
     </group>
@@ -286,9 +159,8 @@ function WaterTank({ nivel, position }: WaterTankProps) {
 }
 
 // =============================================================================
-// Componente Principal: Escena 3D del Terreno
+// Componente Principal Escena 3D
 // =============================================================================
-
 interface TerrainScene3DProps {
   parcelas: ParcelaDashboard[];
   tanqueNivel: number;
@@ -300,100 +172,72 @@ interface TerrainScene3DProps {
 export default function TerrainScene3D({
   parcelas,
   tanqueNivel,
-  tanqueCapacidad,
   onParcelaSelect,
-  selectedParcelaId,
 }: TerrainScene3DProps) {
-  // Posiciones predefinidas para las 3 zonas
-  const zonePositions: Record<string, [number, number, number]> = {
-    zona_alta: [-3, 0.8, 0],
-    zona_media: [0, 0.3, 0],
-    zona_baja: [3, -0.2, 0],
-  };
-
-  const valvePositions: Record<string, [number, number, number]> = {
-    zona_alta: [-3, 1.8, -2],
-    zona_media: [0, 1.3, -2],
-    zona_baja: [3, 0.8, -2],
-  };
-
   return (
-    <div className="w-full h-[500px] md:h-[600px] rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-sky-900 to-sky-700">
+    <div className="relative w-full h-full min-h-[380px] md:min-h-[440px] rounded-xl overflow-hidden bg-[#18181b]">
+      {/* Canvas 3D */}
       <Canvas
         shadows
-        camera={{ position: [0, 8, 10], fov: 50 }}
+        camera={{ position: [0, 9.5, 9.5], fov: 42 }}
         gl={{ antialias: true }}
       >
-        {/* Iluminación */}
-        <ambientLight intensity={0.4} />
-        <directionalLight
-          position={[5, 10, 5]}
-          intensity={1}
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-        />
-        <pointLight position={[-5, 5, -5]} intensity={0.3} color="#FFE0B2" />
+        <color attach="background" args={['#18181b']} />
 
-        {/* Cielo */}
-        <Environment preset="sunset" />
+        {/* Luces */}
+        <ambientLight intensity={0.85} />
+        <directionalLight position={[6, 12, 6]} intensity={1.2} castShadow />
 
-        {/* Terreno por parcela */}
-        {parcelas.map((p) => {
-          const zone = p.parcela.zona_3d || 'zona_media';
-          return (
-            <TerrainZone
-              key={p.parcela.id}
-              parcela={p}
-              position={zonePositions[zone] || [0, 0, 0]}
-              size={[3, 4]}
-              onClick={() => onParcelaSelect?.(p.parcela.id)}
-              selected={selectedParcelaId === p.parcela.id}
-            />
-          );
-        })}
-
-        {/* Válvulas */}
-        {parcelas.map((p) => {
-          const zone = p.parcela.zona_3d || 'zona_media';
-          return (
-            <ValveMarker
-              key={`valve-${p.parcela.id}`}
-              position={valvePositions[zone] || [0, 1, -2]}
-              isOpen={p.valvula_estado === 'abierta'}
-              label={p.parcela.nombre}
-            />
-          );
-        })}
-
-        {/* Tanque de agua */}
-        <WaterTank
-          nivel={tanqueNivel}
-          capacidad={tanqueCapacidad}
-          position={[6, 0, -3]}
-        />
-
-        {/* Plano de suelo base */}
-        <mesh
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.5, 0]}
-          receiveShadow
-        >
-          <planeGeometry args={[20, 15]} />
-          <meshStandardMaterial color="#5D4037" roughness={1} />
+        {/* Base de la maqueta (suelo oscuro elegante) */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.05, 0]} receiveShadow>
+          <planeGeometry args={[16, 8]} />
+          <meshStandardMaterial color="#27272a" roughness={0.9} />
         </mesh>
 
-        {/* Controles de órbita */}
+        {/* Parcelas */}
+        {parcelas.map((p) => {
+          const zoneKey = p.parcela.zona_3d || 'zona_media';
+          return (
+            <ParcelMesh
+              key={p.parcela.id}
+              parcela={p}
+              position={ZONE_POSITIONS[zoneKey] || [0, 0.15, 0]}
+              onClick={() => onParcelaSelect?.(p.parcela.id)}
+            />
+          );
+        })}
+
+        {/* Cisterna */}
+        <Tank3D nivel={tanqueNivel} position={TANK_POSITION} />
+
+        {/* Controles de cámara limitados */}
         <OrbitControls
-          enablePan
-          enableZoom
-          enableRotate
-          maxPolarAngle={Math.PI / 2.2}
-          minDistance={5}
-          maxDistance={20}
-          autoRotate
-          autoRotateSpeed={0.3}
+          enablePan={false}
+          maxPolarAngle={Math.PI / 2.3}
+          minDistance={7}
+          maxDistance={18}
         />
       </Canvas>
+
+      {/* Leyenda fija en la parte inferior */}
+      <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-md px-3 py-2 rounded-lg border border-white/10 flex items-center gap-4 text-[11px] text-zinc-300 pointer-events-none">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#ef4444]" />
+          <span>Crítico &lt;35%</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#f59e0b]" />
+          <span>Bajo</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#22c55e]" />
+          <span>Óptimo</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#3b82f6]" />
+          <span>Saturado &gt;75%</span>
+        </div>
+      </div>
     </div>
   );
 }

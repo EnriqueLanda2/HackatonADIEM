@@ -4,147 +4,109 @@ import { ParcelaDashboard } from '@/types';
 
 interface ParcelaCardProps {
   data: ParcelaDashboard;
-  onSelect?: () => void;
-  selected?: boolean;
   onToggleValve?: () => void;
 }
 
-export default function ParcelaCard({
-  data,
-  onSelect,
-  selected,
-  onToggleValve,
-}: ParcelaCardProps) {
-  const { parcela, cultivo, humedad_suelo, temperatura, humedad_ambiental, valvula_estado, valvula_modo } = data;
+export default function ParcelaCard({ data, onToggleValve }: ParcelaCardProps) {
+  const { parcela, cultivo, humedad_suelo, temperatura, valvula_estado } = data;
 
-  // Determinar estado de humedad
-  const humedadStatus =
-    humedad_suelo < cultivo.humedad_minima
-      ? 'critico'
-      : humedad_suelo < cultivo.humedad_optima
-      ? 'aceptable'
-      : humedad_suelo <= cultivo.humedad_maxima
-      ? 'optimo'
-      : 'saturado';
+  // Semáforo según humedad
+  let statusLabel = 'Óptimo';
+  let badgeClasses = 'bg-emerald-950/70 border-emerald-500/30 text-emerald-400';
+  let barColor = 'bg-emerald-500';
 
-  const statusColors = {
-    critico: 'bg-red-500/20 border-red-500/50 text-red-400',
-    aceptable: 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400',
-    optimo: 'bg-green-500/20 border-green-500/50 text-green-400',
-    saturado: 'bg-blue-500/20 border-blue-500/50 text-blue-400',
-  };
+  if (humedad_suelo < 35) {
+    statusLabel = 'Crítico';
+    badgeClasses = 'bg-rose-950/70 border-rose-500/30 text-rose-400';
+    barColor = 'bg-rose-500';
+  } else if (humedad_suelo < 50) {
+    statusLabel = 'Bajo';
+    badgeClasses = 'bg-amber-950/70 border-amber-500/30 text-amber-400';
+    barColor = 'bg-amber-500';
+  } else if (humedad_suelo > 75) {
+    statusLabel = 'Saturado';
+    badgeClasses = 'bg-blue-950/70 border-blue-500/30 text-blue-400';
+    barColor = 'bg-blue-500';
+  }
 
-  const statusLabels = {
-    critico: '🔴 Crítico',
-    aceptable: '🟡 Aceptable',
-    optimo: '🟢 Óptimo',
-    saturado: '🔵 Saturado',
-  };
+  // Nombre de zona amigable (Norte, Centro, Sur)
+  const zoneName = parcela.zona_3d === 'zona_alta' 
+    ? 'Norte' 
+    : parcela.zona_3d === 'zona_baja' 
+    ? 'Sur' 
+    : 'Centro';
+
+  const cropName = cultivo.nombre.split(' ')[0];
+  const isOpen = valvula_estado === 'abierta';
 
   return (
-    <div
-      onClick={onSelect}
-      className={`rounded-xl p-4 cursor-pointer transition-all duration-300 border backdrop-blur-sm ${
-        selected
-          ? 'bg-white/15 border-yellow-400/60 shadow-lg shadow-yellow-400/10 scale-[1.02]'
-          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
-      }`}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{cultivo.icono}</span>
-          <div>
-            <h3 className="font-semibold text-white text-sm">{parcela.nombre}</h3>
-            <p className="text-[10px] text-white/50">{cultivo.nombre} · {cultivo.tipo_riego}</p>
-          </div>
-        </div>
-        <span
-          className={`text-[10px] px-2 py-0.5 rounded-full border ${statusColors[humedadStatus]}`}
-        >
-          {statusLabels[humedadStatus]}
-        </span>
-      </div>
-
-      {/* Métricas */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {/* Humedad del suelo */}
-        <div className="bg-black/20 rounded-lg p-2 text-center">
-          <div className="text-[10px] text-white/50 mb-1">💧 Humedad</div>
-          <div className="text-lg font-bold text-white">{humedad_suelo.toFixed(0)}%</div>
-          <div className="w-full bg-white/10 rounded-full h-1.5 mt-1">
-            <div
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                humedadStatus === 'critico'
-                  ? 'bg-red-500'
-                  : humedadStatus === 'aceptable'
-                  ? 'bg-yellow-500'
-                  : humedadStatus === 'optimo'
-                  ? 'bg-green-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(100, humedad_suelo)}%` }}
-            />
-          </div>
-          <div className="text-[8px] text-white/30 mt-0.5">
-            Rango: {cultivo.humedad_minima}-{cultivo.humedad_maxima}%
-          </div>
-        </div>
-
-        {/* Temperatura */}
-        <div className="bg-black/20 rounded-lg p-2 text-center">
-          <div className="text-[10px] text-white/50 mb-1">🌡️ Temp</div>
-          <div className="text-lg font-bold text-white">{temperatura.toFixed(1)}°</div>
-          <div className="text-[8px] text-white/30 mt-1">
-            Óptima: {cultivo.temp_optima}°C
-          </div>
-        </div>
-
-        {/* Humedad ambiental */}
-        <div className="bg-black/20 rounded-lg p-2 text-center">
-          <div className="text-[10px] text-white/50 mb-1">🌫️ HR</div>
-          <div
-            className={`text-lg font-bold ${
-              humedad_ambiental > cultivo.hr_alerta_hongos
-                ? 'text-orange-400'
-                : 'text-white'
-            }`}
-          >
-            {humedad_ambiental.toFixed(0)}%
-          </div>
-          {humedad_ambiental > cultivo.hr_alerta_hongos && (
-            <div className="text-[8px] text-orange-400 mt-1">⚠️ Riesgo hongos</div>
-          )}
-        </div>
-      </div>
-
-      {/* Válvula */}
-      <div className="flex items-center justify-between bg-black/20 rounded-lg p-2">
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              valvula_estado === 'abierta'
-                ? 'bg-green-500 animate-pulse'
-                : 'bg-red-500'
-            }`}
-          />
-          <span className="text-xs text-white/70">
-            Válvula: {valvula_estado === 'abierta' ? '💧 Abierta' : '🔒 Cerrada'}
+    <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 shadow-md flex flex-col justify-between hover:border-white/10 transition-colors">
+      <div>
+        {/* Cabecera de la tarjeta con nombre y semáforo */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-white text-base tracking-tight">
+            {zoneName} · {cropName}
+          </h3>
+          <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${badgeClasses}`}>
+            {statusLabel}
           </span>
-          <span className="text-[10px] text-white/30">({valvula_modo})</span>
         </div>
+
+        {/* Métrica principal (Humedad y Temperatura) */}
+        <div className="flex items-baseline gap-3 mb-3">
+          <span className="text-4xl font-bold tracking-tight text-white">
+            {humedad_suelo.toFixed(0)}%
+          </span>
+          <span className="text-base text-zinc-400 font-normal">
+            {temperatura.toFixed(1)} °C
+          </span>
+        </div>
+
+        {/* Barra de progreso semafórica */}
+        <div className="w-full bg-zinc-800/80 h-2 rounded-full overflow-hidden mb-5">
+          <div
+            className={`h-full transition-all duration-500 ${barColor}`}
+            style={{ width: `${Math.min(100, Math.max(0, humedad_suelo))}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Control inferior de Válvula */}
+      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          ) : (
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-zinc-500"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          )}
+          <span className={`text-sm ${isOpen ? 'text-zinc-200' : 'text-zinc-500'}`}>
+            Válvula {isOpen ? 'abierta' : 'cerrada'}
+          </span>
+        </div>
+
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleValve?.();
           }}
-          className={`text-[10px] px-3 py-1 rounded-full font-medium transition-colors ${
-            valvula_estado === 'abierta'
-              ? 'bg-red-500/30 text-red-300 hover:bg-red-500/50'
-              : 'bg-green-500/30 text-green-300 hover:bg-green-500/50'
+          className={`text-xs px-4 py-1.5 rounded-full border transition-all font-medium ${
+            isOpen
+              ? 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
+              : 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
           }`}
         >
-          {valvula_estado === 'abierta' ? 'Cerrar' : 'Abrir'}
+          {isOpen ? 'Cerrar' : 'Abrir'}
         </button>
       </div>
     </div>
