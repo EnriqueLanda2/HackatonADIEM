@@ -40,7 +40,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${inter.className} antialiased bg-gray-900 text-white`}
+        className={`${inter.className} antialiased bg-[#111111] text-white`}
       >
         {children}
       </body>
