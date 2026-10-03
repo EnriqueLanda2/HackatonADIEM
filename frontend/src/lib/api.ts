@@ -627,6 +627,16 @@ export const api = {
     mockSimulationData.valvula_arroz = true;
   },
 
+  regarTodoManual(): void {
+    mockSimulationData.valvula_cana = true;
+    mockSimulationData.valvula_tomate = true;
+    mockSimulationData.valvula_arroz = true;
+  },
+
+  rellenarTanque(nivel: number = 100): void {
+    mockSimulationData.nivel_tanque = nivel;
+  },
+
   detenerRiegoTodo(): void {
     mockSimulationData.valvula_cana = false;
     mockSimulationData.valvula_tomate = false;

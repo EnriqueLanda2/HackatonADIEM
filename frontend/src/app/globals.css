@@ -9,32 +9,31 @@
 }
 
 :root {
-  --color-darkgreen: #365004;
-  --color-applegreen: #8DA432;
-  --color-flax: #EDE383;
-  --color-goldenbrown: #925E06;
-  --color-creme: #FFFCE9;
-
-  --background: #0f1606;
+  --background: #192604;
   --foreground: #FFFCE9;
+  --dark-green: #365004;
+  --apple-green: #8DA432;
+  --flax: #EDE383;
+  --golden-brown: #925E06;
+  --creme: #FFFCE9;
 }
 
-/* Scrollbar styling con paleta orgánica */
+/* Scrollbar styling */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgba(141, 164, 50, 0.25) transparent;
+  scrollbar-color: #8DA432 transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+  background: #192604;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(141, 164, 50, 0.25);
+  background-color: #8DA432;
   border-radius: 4px;
 }
 
@@ -53,32 +52,35 @@ canvas {
   touch-action: none;
 }
 
-/* Range slider custom con paleta */
+/* Range slider custom */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
+  background: #2a3d06;
+  border-radius: 9999px;
+  height: 6px;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #EDE383;
+  background: #8DA432;
+  border: 2px solid #FFFCE9;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(54, 80, 4, 0.8);
-  border: 2px solid #365004;
+  box-shadow: 0 0 6px rgba(141, 164, 50, 0.5);
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #EDE383;
+  background: #8DA432;
+  border: 2px solid #FFFCE9;
   cursor: pointer;
-  border: 2px solid #365004;
-  box-shadow: 0 0 6px rgba(54, 80, 4, 0.8);
+  box-shadow: 0 0 6px rgba(141, 164, 50, 0.5);
 }
 
 /* Mobile-first responsive fixes */
@@ -89,7 +91,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 body {
-  background: #0f1606;
+  background: #192604;
   color: #FFFCE9;
   font-family: Arial, Helvetica, sans-serif;
 }

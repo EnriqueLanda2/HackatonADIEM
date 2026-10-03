@@ -23,10 +23,10 @@ const TerrainScene3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[440px] rounded-xl bg-[#18181b] border border-white/5 flex items-center justify-center">
+      <div className="w-full h-full min-h-[440px] rounded-xl bg-[#233506] border border-[#8DA432]/30 flex items-center justify-center">
         <div className="text-center">
           <div className="text-3xl mb-2 animate-bounce">🌱</div>
-          <p className="text-zinc-500 text-xs">Cargando modelo 3D del terreno...</p>
+          <p className="text-[#EDE383] text-xs">Cargando modelo 3D del terreno...</p>
         </div>
       </div>
     ),
@@ -105,10 +105,10 @@ export default function DashboardPage() {
 
   if (loading && !data) {
     return (
-      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
+      <div className="min-h-screen bg-[#192604] flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4 animate-pulse">🌱</div>
-          <p className="text-zinc-400 text-sm font-medium">Iniciando Sistema de Riego Inteligente...</p>
+          <p className="text-[#EDE383] text-sm font-medium">Iniciando Sistema de Riego Inteligente...</p>
         </div>
       </div>
     );
@@ -116,13 +116,13 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
+      <div className="min-h-screen bg-[#192604] flex items-center justify-center">
         <div className="text-center">
           <div className="text-5xl mb-4">⚠️</div>
-          <p className="text-zinc-400 text-sm mb-4">{error || 'Error al conectar'}</p>
+          <p className="text-[#EDE383] text-sm mb-4">{error || 'Error al conectar'}</p>
           <button
             onClick={refresh}
-            className="text-xs px-5 py-2 rounded-full bg-emerald-600 text-white font-medium"
+            className="text-xs px-5 py-2 rounded-full bg-[#8DA432] hover:bg-[#365004] text-[#FFFCE9] font-medium border border-[#EDE383]/40 transition-colors shadow-md"
           >
             Reintentar
           </button>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
   const dronData = data.dron || api.getDronState();
 
   return (
-    <div className="min-h-screen bg-[#0f1606] text-[#FFFCE9] selection:bg-[#8DA432]/30 selection:text-[#FFFCE9] antialiased font-sans">
+    <div className="min-h-screen bg-[#192604] text-[#FFFCE9] selection:bg-[#8DA432]/30 antialiased font-sans">
       {/* Barra de Navegación Superior con botón de Nueva Parcela */}
       <Header
         backendStatus={backendAvailable}
@@ -151,45 +151,45 @@ export default function DashboardPage() {
         {/* FILA DE ESTADÍSTICAS SUPERIORES                                           */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div>
-            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Parcelas activas</div>
+          <div className="bg-[#233506]/70 border border-[#8DA432]/20 rounded-xl p-3.5">
+            <div className="text-[#EDE383] text-sm mb-1.5 font-normal">Parcelas activas</div>
             <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.parcelas_activas} / {stats.total_parcelas}
             </div>
           </div>
 
-          <div>
-            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Válvulas abiertas</div>
+          <div className="bg-[#233506]/70 border border-[#8DA432]/20 rounded-xl p-3.5">
+            <div className="text-[#EDE383] text-sm mb-1.5 font-normal">Válvulas abiertas</div>
             <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.valvulas_abiertas}
             </div>
           </div>
 
           <div
-            className={`transition-colors ${
+            className={`rounded-xl p-3.5 transition-colors ${
               stats.alertas_sin_leer > 0
-                ? 'bg-[#925E06]/25 border border-[#925E06]/50 rounded-xl px-4 py-3 -my-3'
-                : ''
+                ? 'bg-[#925E06]/35 border border-[#925E06]'
+                : 'bg-[#233506]/70 border border-[#8DA432]/20'
             }`}
           >
             <div
               className={`text-sm mb-1.5 font-normal ${
-                stats.alertas_sin_leer > 0 ? 'text-[#EDE383]' : 'text-[#EDE383]/80'
+                stats.alertas_sin_leer > 0 ? 'text-[#EDE383] font-semibold' : 'text-[#EDE383]'
               }`}
             >
-              Alertas
+              Alertas {stats.alertas_sin_leer > 0 ? '⚠️' : ''}
             </div>
             <div
               className={`text-3xl font-semibold tracking-tight ${
-                stats.alertas_sin_leer > 0 ? 'text-[#EDE383]' : 'text-[#FFFCE9]'
+                stats.alertas_sin_leer > 0 ? 'text-[#FFFCE9]' : 'text-[#FFFCE9]'
               }`}
             >
               {stats.alertas_sin_leer}
             </div>
           </div>
 
-          <div>
-            <div className="text-[#EDE383]/80 text-sm mb-1.5 font-normal">Litros hoy</div>
+          <div className="bg-[#233506]/70 border border-[#8DA432]/20 rounded-xl p-3.5">
+            <div className="text-[#EDE383] text-sm mb-1.5 font-normal">Litros hoy</div>
             <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
               {stats.litros_hoy.toLocaleString('es-MX')}
             </div>
@@ -202,12 +202,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
           
           {/* COLUMNA IZQUIERDA: Tarjetas de Información de Sensores por Parcela */}
-          <div className="lg:col-span-5 flex flex-col gap-3.5">
+          <div className="lg:col-span-5 flex flex-col gap-4">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-semibold text-[#EDE383] uppercase tracking-wider">
                 Monitoreo de Sensores
               </h2>
-              <span className="text-xs text-[#EDE383]/60 font-medium">
+              <span className="text-xs text-[#EDE383]/70 font-medium">
                 {data.parcelas.length} Parcelas en Morelos
               </span>
             </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-7 flex flex-col gap-6">
             
             {/* Tarjeta de la Vista del Terreno 3D */}
-            <div className="bg-[#131d08]/85 rounded-2xl p-5 border border-[#8DA432]/20 flex flex-col shadow-md">
+            <div className="bg-[#233506] rounded-2xl p-5 border border-[#8DA432]/30 flex flex-col shadow-lg shadow-black/20">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-[#FFFCE9] font-semibold text-base">
                   <svg
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                   </svg>
                   <span>Vista del terreno 3D</span>
                 </div>
-                <span className="text-[11px] text-[#EDE383]/60 font-medium">
+                <span className="text-[11px] text-[#EDE383]/70 font-medium">
                   Rotación 360° · Dron y Telemetría en vivo
                 </span>
               </div>

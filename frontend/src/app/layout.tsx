@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1a3a1a',
+  themeColor: '#365004',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -40,7 +40,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${inter.className} antialiased bg-[#111111] text-white`}
+        className={`${inter.className} antialiased bg-[#192604] text-[#FFFCE9]`}
       >
         {children}
       </body>

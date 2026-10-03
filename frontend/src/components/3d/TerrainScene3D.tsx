@@ -12,8 +12,8 @@ import { ParcelaDashboard, DronRiego } from '@/types';
 export const HUMIDITY_COLORS = {
   critico: '#925E06',   // <35% Golden Brown
   bajo: '#EDE383',      // 35-50% Flax
-  optimo: '#8DA432',    // 50-75% Apple Green
-  saturado: '#365004',  // >75% Dark Green
+  optimo: '#8DA432',    // 50-75% Apple green
+  saturado: '#365004',  // >75% Dark green
 };
 
 export function getStatusFromHumidity(hum: number) {
@@ -176,7 +176,7 @@ function SensorProbe3D({ statusColor }: { statusColor: string }) {
       </mesh>
       <mesh position={[0, 0.7, 0]} castShadow>
         <boxGeometry args={[0.16, 0.18, 0.12]} />
-        <meshStandardMaterial color="#27272a" roughness={0.4} />
+        <meshStandardMaterial color="#365004" roughness={0.4} />
       </mesh>
       <mesh position={[0, 0.8, 0]} rotation={[0.3, 0, 0]}>
         <boxGeometry args={[0.18, 0.02, 0.14]} />
@@ -201,15 +201,15 @@ function SolenoidValve3D({ isOpen, position }: { isOpen: boolean; position: [num
       <mesh position={[0, 0.15, 0]}>
         <cylinderGeometry args={[0.12, 0.12, 0.25, 12]} />
         <meshStandardMaterial
-          color={isOpen ? '#22c55e' : '#ef4444'}
-          emissive={isOpen ? '#22c55e' : '#7f1d1d'}
-          emissiveIntensity={isOpen ? 0.6 : 0.2}
+          color={isOpen ? '#8DA432' : '#925E06'}
+          emissive={isOpen ? '#8DA432' : '#925E06'}
+          emissiveIntensity={isOpen ? 0.7 : 0.2}
           metalness={0.6}
         />
       </mesh>
       <mesh position={[0, 0.3, 0]}>
         <boxGeometry args={[0.14, 0.1, 0.14]} />
-        <meshStandardMaterial color="#3f3f46" metalness={0.7} />
+        <meshStandardMaterial color="#365004" metalness={0.7} />
       </mesh>
     </group>
   );
@@ -271,7 +271,7 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       {/* Borde exterior de la parcela */}
       <mesh position={[0, -0.05, 0]}>
         <boxGeometry args={[2.85, 0.25, 3.95]} />
-        <meshStandardMaterial color={selected ? '#eab308' : hovered ? '#ffffff' : '#27272a'} roughness={0.9} />
+        <meshStandardMaterial color={selected ? '#EDE383' : hovered ? '#8DA432' : '#273a06'} roughness={0.9} />
       </mesh>
 
       {/* Renderizado de Cultivo o Tierra en Descanso */}
@@ -300,7 +300,7 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
           size={3.5}
           speed={2.2}
           opacity={0.7}
-          color="#60a5fa"
+          color="#8DA432"
           position={[0, 1.0, 0]}
         />
       )}
@@ -308,24 +308,31 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       {/* Varilla / Soporte fino que conecta visualmente el terreno con la tarjeta flotante */}
       <mesh position={[0, 1.35, 0]}>
         <cylinderGeometry args={[0.008, 0.008, 1.7, 4]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.25} />
+        <meshBasicMaterial color="#EDE383" transparent opacity={0.35} />
       </mesh>
 
       {/* ===================================================================== */}
-      {/* ETIQUETA FLOTANTE DISCRETA CON PALETA DE MARCA                       */}
+      {/* ETIQUETA FLOTANTE CON MAYOR PADDING Y ELEVACIÓN (NO TAPA EL CULTIVO)  */}
       {/* ===================================================================== */}
-      <Html position={[0, 2.3, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#131d08]/90 backdrop-blur-md px-3 py-1 rounded-full text-xs whitespace-nowrap border border-[#8DA432]/35 shadow-lg flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
-          <span className="font-semibold text-[#FFFCE9] text-[11px]">{parcela.parcela.nombre}</span>
-          <span className="text-[#8DA432]/50 text-[10px]">·</span>
-          <span className="font-bold text-[#EDE383] text-[11px]">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
-          {isOpen && (
-            <span className="text-[10px] text-[#8DA432] font-semibold flex items-center gap-1 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#8DA432]" />
-              Regando
+      <Html position={[0, 2.5, 0]} center style={{ pointerEvents: 'none' }}>
+        <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-[#8DA432]/40 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm tracking-tight text-[#FFFCE9]">{parcela.parcela.nombre}</span>
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full font-bold text-[#FFFCE9] shadow-sm"
+              style={{ backgroundColor: status.color }}
+            >
+              {status.label}
             </span>
-          )}
+          </div>
+
+          <div className="text-[11px] text-[#EDE383] font-medium flex items-center gap-2 bg-[#273a06] px-2.5 py-1 rounded-lg border border-[#8DA432]/30">
+            <span className="text-[#FFFCE9] font-bold">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
+            <span className="text-[#8DA432]">·</span>
+            <span className="text-[#EDE383] font-semibold">🌡️ {parcela.temperatura.toFixed(1)}°C</span>
+            <span className="text-[#8DA432]">·</span>
+            <span className="text-[#8DA432] font-semibold">🧪 pH {phVal.toFixed(1)}</span>
+          </div>
         </div>
       </Html>
     </group>
@@ -412,16 +419,16 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
         <mesh position={[0.6, 0.4, -0.6]}>
           <boxGeometry args={[0.09, 0.09, 0.09]} />
           <meshStandardMaterial
-            color={llaveAbierta ? '#3b82f6' : '#94a3b8'}
-            emissive={llaveAbierta ? '#3b82f6' : '#000000'}
+            color={llaveAbierta ? '#8DA432' : '#365004'}
+            emissive={llaveAbierta ? '#8DA432' : '#000000'}
             emissiveIntensity={llaveAbierta ? 0.8 : 0}
           />
         </mesh>
 
         {/* Etiqueta de la Base */}
         <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
-          <div className="bg-black/90 text-white px-2.5 py-1 rounded-lg text-[10px] font-semibold border border-white/10 shadow-lg whitespace-nowrap">
-            Estación Dron: {enBase ? '🟢 Objeto presente' : '⚪ Libre'}
+          <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[#8DA432]/40 shadow-lg whitespace-nowrap">
+            Estación Dron: {enBase ? '🟢 Objeto detectado' : '⚪ Libre'}
           </div>
         </Html>
       </group>
@@ -547,11 +554,11 @@ function CisternAndPiping({ nivel }: { nivel: number }) {
 
       <mesh position={[0, -0.95, 0]}>
         <cylinderGeometry args={[1.1, 1.1, 0.2, 24]} />
-        <meshStandardMaterial color="#3f3f46" roughness={0.9} />
+        <meshStandardMaterial color="#365004" roughness={0.9} />
       </mesh>
 
       <Html position={[0, 1.35, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#131d08]/90 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
+        <div className="bg-[#1c2a04]/95 text-[#FFFCE9] px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap border border-[#8DA432]/40 shadow-xl backdrop-blur-md">
           🚰 Cisterna: {nivel.toFixed(0)}%
         </div>
       </Html>
@@ -564,7 +571,7 @@ function WaterPipes() {
     <group>
       <mesh position={[1.5, 0.05, -1.7]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.05, 0.05, 8.5, 8]} />
-        <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+        <meshStandardMaterial color="#8DA432" metalness={0.7} roughness={0.3} />
       </mesh>
     </group>
   );
@@ -590,13 +597,13 @@ export default function TerrainScene3D({
   selectedParcelaId,
 }: TerrainScene3DProps) {
   return (
-    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#101807]">
+    <div className="relative w-full h-full min-h-[440px] md:min-h-[480px] rounded-xl overflow-hidden bg-[#1c2a04]">
       <Canvas
         shadows
         camera={{ position: [0, 9.8, 10.2], fov: 44 }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#101807']} />
+        <color attach="background" args={['#1c2a04']} />
 
         <ambientLight intensity={0.75} />
         <directionalLight
@@ -610,7 +617,7 @@ export default function TerrainScene3D({
         {/* Suelo base de la maqueta agrícola */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.5, -0.16, 0]} receiveShadow>
           <planeGeometry args={[18, 10]} />
-          <meshStandardMaterial color="#1a270a" roughness={0.95} />
+          <meshStandardMaterial color="#273a06" roughness={0.95} />
         </mesh>
 
         {/* Caminos de grava entre parcelas */}
@@ -659,21 +666,21 @@ export default function TerrainScene3D({
       </Canvas>
 
       {/* Leyenda fija en la esquina inferior */}
-      <div className="absolute bottom-3 left-3 bg-[#111111]/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/10 flex items-center gap-3.5 text-[11px] text-zinc-300 pointer-events-none shadow-xl">
+      <div className="absolute bottom-3 left-3 bg-[#1c2a04]/92 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-[#8DA432]/40 flex items-center gap-3.5 text-[11px] text-[#FFFCE9] pointer-events-none shadow-xl">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#ef4444]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#925E06]" />
           <span>Crítico &lt;35%</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#f59e0b]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#EDE383]" />
           <span>Bajo</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#22c55e]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#8DA432]" />
           <span>Óptimo</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#3b82f6]" />
+          <span className="w-2.5 h-2.5 rounded-sm bg-[#365004]" />
           <span>Saturado &gt;75%</span>
         </div>
       </div>

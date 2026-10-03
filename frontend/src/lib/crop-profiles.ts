@@ -188,24 +188,24 @@ export function getEstadoPH(ph: number): {
     return {
       estado: 'acido',
       label: 'Ácido',
-      color: '#FFA726',
-      badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      color: '#925E06',
+      badgeClass: 'bg-[#925E06]/40 text-[#EDE383] border-[#925E06]',
       descripcion: 'Suelo ácido (< 6.0 pH). Monitorear disponibilidad de nutrientes.',
     };
   } else if (ph <= 7.5) {
     return {
       estado: 'optimo',
       label: 'Óptimo',
-      color: '#66BB6A',
-      badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      color: '#8DA432',
+      badgeClass: 'bg-[#8DA432]/30 text-[#FFFCE9] border-[#8DA432]',
       descripcion: 'pH óptimo (6.0 - 7.5) para asimilación de minerales.',
     };
   } else {
     return {
       estado: 'alcalino',
       label: 'Alcalino',
-      color: '#42A5F5',
-      badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+      color: '#8DA432',
+      badgeClass: 'bg-[#365004]/60 text-[#EDE383] border-[#8DA432]',
       descripcion: 'Suelo alcalino (> 7.5 pH). Posible bloqueo de fósforo/hierro.',
     };
   }
