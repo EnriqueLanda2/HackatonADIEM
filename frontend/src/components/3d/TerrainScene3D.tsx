@@ -242,7 +242,10 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
 
   const cropId = parcela.cultivo?.id;
   const isOpen = parcela.valvula_estado === 'abierta';
-  const phVal = parcela.ph_suelo ?? (cropId === 'arroz' ? 6.5 : cropId === 'tomate_rojo' ? 6.2 : 6.8);
+  const phRaw = Number(parcela.ph_suelo ?? (cropId?.includes('arroz') ? 6.5 : cropId?.includes('tomate') ? 6.2 : 6.8));
+  const phVal = isNaN(phRaw) ? 6.8 : phRaw;
+  const humedadSuelo = Number(parcela.humedad_suelo ?? 0);
+  const tempSuelo = Number(parcela.temperatura ?? 24);
 
   return (
     <group position={position}>
@@ -327,9 +330,9 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
           </div>
 
           <div className="text-[11px] text-[#EDE383] font-medium flex items-center gap-2 bg-[#273a06] px-2.5 py-1 rounded-lg border border-[#8DA432]/30">
-            <span className="text-[#FFFCE9] font-bold">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
+            <span className="text-[#FFFCE9] font-bold">💧 {humedadSuelo.toFixed(0)}%</span>
             <span className="text-[#8DA432]">·</span>
-            <span className="text-[#EDE383] font-semibold">🌡️ {parcela.temperatura.toFixed(1)}°C</span>
+            <span className="text-[#EDE383] font-semibold">🌡️ {tempSuelo.toFixed(1)}°C</span>
             <span className="text-[#8DA432]">·</span>
             <span className="text-[#8DA432] font-semibold">🧪 pH {phVal.toFixed(1)}</span>
           </div>
@@ -518,8 +521,9 @@ function DroneAndDock3D({ dron }: { dron?: DronRiego }) {
 // =============================================================================
 // Cisterna 3D y Red de Tuberías
 // =============================================================================
-function CisternAndPiping({ nivel }: { nivel: number }) {
+function CisternAndPiping({ nivel: rawNivel }: { nivel: number }) {
   const waterRef = useRef<THREE.Mesh>(null);
+  const nivel = Number(rawNivel ?? 80);
   const isCritical = nivel < 25;
 
   useFrame((state) => {

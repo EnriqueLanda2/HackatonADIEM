@@ -15,7 +15,10 @@ export default function ParcelaCard({
   selected,
   onSelect,
 }: ParcelaCardProps) {
-  const { parcela, cultivo, humedad_suelo, temperatura, humedad_ambiental, valvula_estado } = data;
+  const { parcela, cultivo, valvula_estado } = data;
+  const humedad_suelo = Number(data.humedad_suelo ?? 0);
+  const temperatura = Number(data.temperatura ?? 24);
+  const humedad_ambiental = Number(data.humedad_ambiental ?? 60);
 
   const hasCrop = Boolean(parcela.tiene_cultivo && cultivo);
 
@@ -54,7 +57,8 @@ export default function ParcelaCard({
   const isOpen = valvula_estado === 'abierta';
 
   // pH según cultivo (óptimo 6.0 a 7.2)
-  const phVal = data.ph_suelo ?? (cultivo?.id === 'arroz' ? 6.5 : cultivo?.id === 'tomate_rojo' ? 6.2 : 6.8);
+  const phRaw = Number(data.ph_suelo ?? (cultivo?.id?.includes('arroz') ? 6.5 : cultivo?.id?.includes('tomate') ? 6.2 : 6.8));
+  const phVal = isNaN(phRaw) ? 6.8 : phRaw;
   const phStatus = phVal >= 6.0 && phVal <= 7.2 ? 'Neutro' : phVal < 6.0 ? 'Ácido' : 'Alcalino';
 
   return (
@@ -109,7 +113,7 @@ export default function ParcelaCard({
           </div>
           <div className="flex justify-between text-[10px] text-[#EDE383]/70 mt-1 font-medium">
             <span>0%</span>
-            <span>{hasCrop && cultivo ? `Óptimo: ${cultivo.humedad_optima}%` : 'Límite hídrico'}</span>
+            <span>{hasCrop && cultivo ? `Óptimo: ${Number(cultivo.humedad_optima || 60).toFixed(0)}%` : 'Límite hídrico'}</span>
             <span>100%</span>
           </div>
         </div>

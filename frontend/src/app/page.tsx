@@ -191,7 +191,7 @@ export default function DashboardPage() {
           <div className="bg-[#233506]/70 border border-[#8DA432]/20 rounded-xl p-3.5">
             <div className="text-[#EDE383] text-sm mb-1.5 font-normal">Litros hoy</div>
             <div className="text-3xl font-semibold tracking-tight text-[#FFFCE9]">
-              {stats.litros_hoy.toLocaleString('es-MX')}
+              {Number(stats.litros_hoy ?? 0).toLocaleString('es-MX')}
             </div>
           </div>
         </div>
@@ -256,8 +256,8 @@ export default function DashboardPage() {
               <div className="w-full h-[440px] md:h-[480px] rounded-xl overflow-hidden">
                 <TerrainScene3D
                   parcelas={data.parcelas}
-                  tanqueNivel={data.tanques[0]?.nivel_actual_porcentaje ?? 79}
-                  tanqueCapacidad={data.tanques[0]?.capacidad_litros ?? 50000}
+                  tanqueNivel={Number(data.tanques[0]?.nivel_actual_porcentaje ?? 79)}
+                  tanqueCapacidad={Number(data.tanques[0]?.capacidad_litros ?? 50000)}
                   dron={dronData}
                   onParcelaSelect={setSelectedParcelaId}
                   selectedParcelaId={selectedParcelaId ?? undefined}

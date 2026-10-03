@@ -37,7 +37,7 @@ export default function RootLayout({
     <html lang="es" className="dark">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
         className={`${inter.className} antialiased bg-[#192604] text-[#FFFCE9]`}

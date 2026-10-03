@@ -70,8 +70,10 @@ export default function DroneControlPanel({
     onRefresh();
   };
 
-  const sinAgua = dron.nivel_agua_porcentaje <= 15;
-  const enMision = dron.mision_activa || dron.estado === 'regando';
+  const dronNivel = Number(dron?.nivel_agua_porcentaje ?? 0);
+  const dronCapacidad = Number(dron?.capacidad_litros ?? 40);
+  const sinAgua = dronNivel <= 15;
+  const enMision = dron?.mision_activa || dron?.estado === 'regando';
 
   return (
     <div className="bg-[#273a06] rounded-2xl p-5 border border-[#8DA432]/35 shadow-lg shadow-black/15 flex flex-col gap-4">
@@ -144,11 +146,11 @@ export default function DroneControlPanel({
           <div>
             <div className="flex justify-between items-center text-xs text-[#EDE383] mb-1">
               <span className="font-semibold">💧 Tanque de Agua del Dron</span>
-              <span className="text-[10px] text-[#EDE383]/70 font-mono">{((dron.capacidad_litros * dron.nivel_agua_porcentaje) / 100).toFixed(0)} / {dron.capacidad_litros} L</span>
+              <span className="text-[10px] text-[#EDE383]/70 font-mono">{((dronCapacidad * dronNivel) / 100).toFixed(0)} / {dronCapacidad} L</span>
             </div>
             <div className="flex items-baseline gap-2 mb-2">
               <span className="text-3xl font-extrabold text-[#FFFCE9] tracking-tight">
-                {dron.nivel_agua_porcentaje}%
+                {dronNivel.toFixed(0)}%
               </span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                 sinAgua 

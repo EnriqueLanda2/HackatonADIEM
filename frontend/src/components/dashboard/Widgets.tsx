@@ -84,10 +84,11 @@ export function Header({
 // =============================================================================
 export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
   const [refilling, setRefilling] = useState(false);
-  const nivel = tanque.nivel_actual_porcentaje;
+  const nivel = Number(tanque?.nivel_actual_porcentaje ?? 0);
+  const capacidad = Number(tanque?.capacidad_litros ?? 50000);
   const isCritical = nivel < 25;
-  const volumenActual = ((tanque.capacidad_litros * nivel) / 100 / 1000).toFixed(1);
-  const capacidadTotal = (tanque.capacidad_litros / 1000).toFixed(0);
+  const volumenActual = ((capacidad * nivel) / 100 / 1000).toFixed(1);
+  const capacidadTotal = (capacidad / 1000).toFixed(0);
 
   const handleRefillCistern = () => {
     setRefilling(true);
@@ -183,7 +184,7 @@ export function SimulationPanel({
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-[#EDE383] text-[11px] font-medium truncate">{label}</span>
               <span className="text-[#FFFCE9] font-mono font-bold text-[11px]">
-                {(data[key] ?? (key === 'ph_tierra' ? 6.8 : 50)).toFixed(key === 'ph_tierra' || key === 'temperatura' ? 1 : 0)}
+                {Number(data[key] ?? (key === 'ph_tierra' ? 6.8 : 50)).toFixed(key === 'ph_tierra' || key === 'temperatura' ? 1 : 0)}
                 {unit}
               </span>
             </div>

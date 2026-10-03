@@ -312,27 +312,27 @@ function generateMockDashboard(): DashboardSummary {
     });
   }
 
-  if (data.nivel_tanque < 20) {
+  if (Number(data.nivel_tanque ?? 100) < 20) {
     alertas.push({
       id: 'alerta-tanque',
       tipo: 'nivel_reserva',
       severidad: 'critica',
       titulo: '🚨 Nivel crítico de reserva de agua',
-      mensaje: `El tanque está al ${data.nivel_tanque.toFixed(0)}%. Se han bloqueado los riegos automáticos no críticos. Necesidad de recarga inmediata.`,
+      mensaje: `El tanque está al ${Number(data.nivel_tanque ?? 0).toFixed(0)}%. Se han bloqueado los riegos automáticos no críticos. Necesidad de recarga inmediata.`,
       leida: false,
       activa: true,
       created_at: new Date().toISOString(),
     });
   }
 
-  if (data.humedad_cana < 40) {
+  if (Number(data.humedad_cana ?? 100) < 40) {
     alertas.push({
       id: 'alerta-humedad-cana',
       parcela_id: 'parcela-1',
       tipo: 'humedad_critica',
       severidad: 'alta',
       titulo: '⚠️ Humedad crítica en Parcela Norte',
-      mensaje: `La humedad del suelo en la Parcela Norte (Caña) está al ${data.humedad_cana.toFixed(0)}%, muy por debajo del mínimo recomendado (55%).`,
+      mensaje: `La humedad del suelo en la Parcela Norte (Caña) está al ${Number(data.humedad_cana ?? 0).toFixed(0)}%, muy por debajo del mínimo recomendado (55%).`,
       leida: false,
       activa: true,
       created_at: new Date().toISOString(),
