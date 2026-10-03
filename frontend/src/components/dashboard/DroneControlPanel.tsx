@@ -204,12 +204,14 @@ export default function DroneControlPanel({
             </button>
             <button
               onClick={handleToggleLlave}
-              disabled={!dron.en_posicion_recarga}
+              disabled={!dron.en_posicion_recarga || (dron.nivel_agua_porcentaje >= 100 && !dron.llave_paso_recarga_abierta)}
               className={`flex-1 text-[11px] py-1.5 px-2 rounded-lg border font-semibold transition-all flex items-center justify-center gap-1.5 ${
                 !dron.en_posicion_recarga
                   ? 'bg-zinc-900 border-zinc-800 text-zinc-600 cursor-not-allowed'
                   : dron.llave_paso_recarga_abierta
                   ? 'bg-blue-600 text-white border-blue-400 shadow-md animate-pulse'
+                  : dron.nivel_agua_porcentaje >= 100
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 cursor-default'
                   : 'bg-emerald-600/30 text-emerald-200 border-emerald-500/40 hover:bg-emerald-600/40'
               }`}
             >
@@ -217,6 +219,8 @@ export default function DroneControlPanel({
                 <>🔒 Bloqueada</>
               ) : dron.llave_paso_recarga_abierta ? (
                 <>🚰 Llenando...</>
+              ) : dron.nivel_agua_porcentaje >= 100 ? (
+                <>✅ Tanque Lleno</>
               ) : (
                 <>Abrir Llave</>
               )}
@@ -261,15 +265,23 @@ export default function DroneControlPanel({
                 onClick={handleLlenarManual}
                 className="flex-1 text-[10px] py-1 px-2 rounded-lg border border-white/10 text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
               >
-                Llenado manual rápido
+                Llenado manual
               </button>
               {modoGlobal === 'manual' && (
-                <button
-                  onClick={handleRiegoManualTodo}
-                  className="flex-1 text-[10px] py-1 px-2 rounded-lg bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/40 font-semibold"
-                >
-                  Regar todo manual
-                </button>
+                <>
+                  <button
+                    onClick={handleRiegoManualTodo}
+                    className="flex-1 text-[10px] py-1 px-2 rounded-lg bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/40 font-semibold"
+                  >
+                    Regar todo
+                  </button>
+                  <button
+                    onClick={handleDetenerTodo}
+                    className="flex-1 text-[10px] py-1 px-2 rounded-lg bg-rose-600/20 text-rose-300 border border-rose-500/30 hover:bg-rose-600/30 font-semibold"
+                  >
+                    Detener todo
+                  </button>
+                </>
               )}
             </div>
           </div>

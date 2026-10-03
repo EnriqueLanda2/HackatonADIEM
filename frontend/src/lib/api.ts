@@ -75,6 +75,17 @@ let mockSimulationData: DatosSimulacion = {
   valvula_arroz: false,
 };
 
+// Válvulas individuales por parcela
+const mockParcelValves: Record<string, boolean> = {
+  'parcela-1': false,
+  'parcela-2': true,
+  'parcela-3': false,
+  'parcela-4': false,
+};
+
+// Llave de recarga de la cisterna principal desde pozo/red
+let mockCisternaLlaveLlenado = false;
+
 // Parcelas creadas por el usuario en modo demo
 const mockCustomParcels: ParcelaDashboard[] = [];
 
@@ -94,41 +105,105 @@ let mockDronState: DronRiego = {
   requiere_riego_emergencia: true,
 };
 
-// Simulación progresiva - los valores cambian ligeramente cada consulta
+// Simulación interactiva en tiempo real con detección de LLENO
 function updateMockData(): DatosSimulacion {
-  const vary = (val: number, range: number, min: number, max: number) => {
-    const delta = (Math.random() - 0.5) * range;
-    return Math.max(min, Math.min(max, +(val + delta).toFixed(1)));
-  };
-
-  // Lógica del dron
-  if (mockDronState.llave_paso_recarga_abierta && mockDronState.en_posicion_recarga) {
-    // Si la llave de paso está abierta y está presente, se llena
-    mockDronState.nivel_agua_porcentaje = Math.min(100, mockDronState.nivel_agua_porcentaje + 15);
-    if (mockDronState.nivel_agua_porcentaje >= 100) {
-      mockDronState.llave_paso_recarga_abierta = false;
+  // 1. Simulación de recarga de cisterna (Pozo / Red general)
+  if (mockCisternaLlaveLlenado) {
+    mockSimulationData.nivel_tanque = Math.min(100, +(mockSimulationData.nivel_tanque + 20).toFixed(1));
+    if (mockSimulationData.nivel_tanque >= 100) {
+      mockSimulationData.nivel_tanque = 100;
+      mockCisternaLlaveLlenado = false; // Sensor de boya / nivel máximo detecta LLENO -> corte automático
     }
   }
 
-  if (mockDronState.mision_activa && mockDronState.nivel_agua_porcentaje > 0) {
-    mockDronState.nivel_agua_porcentaje = Math.max(0, mockDronState.nivel_agua_porcentaje - 10);
+  // 2. Simulación de recarga del Dron
+  if (mockDronState.llave_paso_recarga_abierta) {
+    if (!mockDronState.en_posicion_recarga) {
+      // Bloqueo de seguridad: objeto retirado de la plataforma
+      mockDronState.llave_paso_recarga_abierta = false;
+    } else {
+      mockDronState.nivel_agua_porcentaje = Math.min(100, mockDronState.nivel_agua_porcentaje + 25);
+      if (mockDronState.nivel_agua_porcentaje >= 100) {
+        mockDronState.nivel_agua_porcentaje = 100;
+        mockDronState.llave_paso_recarga_abierta = false; // Detecta tanque LLENO: corte automático por flotador
+        mockDronState.estado = 'en_base';
+      }
+    }
+  }
+
+  // 3. Simulación de vuelo y aspersión del Dron
+  if (mockDronState.mision_activa) {
+    mockDronState.nivel_agua_porcentaje = Math.max(0, mockDronState.nivel_agua_porcentaje - 12);
     mockDronState.estado = 'regando';
-    if (mockDronState.nivel_agua_porcentaje === 0) {
+    // Aspersión moja todas las parcelas
+    mockSimulationData.humedad_cana = Math.min(96, +(mockSimulationData.humedad_cana + 3).toFixed(1));
+    mockSimulationData.humedad_tomate = Math.min(92, +(mockSimulationData.humedad_tomate + 3).toFixed(1));
+    mockSimulationData.humedad_arroz = Math.min(100, +(mockSimulationData.humedad_arroz + 2).toFixed(1));
+
+    if (mockDronState.nivel_agua_porcentaje <= 0) {
+      mockDronState.nivel_agua_porcentaje = 0;
       mockDronState.mision_activa = false;
       mockDronState.estado = 'en_base';
+      mockDronState.en_posicion_recarga = true; // Aterriza en la base
     }
   }
 
+  // 4. Riego dinámico de parcelas por electroválvulas
+  // Caña de Azúcar (parcela-1)
+  if (mockParcelValves['parcela-1']) {
+    mockSimulationData.humedad_cana = Math.min(98, +(mockSimulationData.humedad_cana + 4.5).toFixed(1));
+    mockSimulationData.nivel_tanque = Math.max(0, +(mockSimulationData.nivel_tanque - 0.6).toFixed(1));
+    if (mockSimulationData.humedad_cana >= 92 && mockModoGlobalRiego === 'automatico') {
+      // Corte automático al llegar a capacidad óptima de campo (LLENO)
+      mockParcelValves['parcela-1'] = false;
+      mockSimulationData.valvula_cana = false;
+    }
+  } else {
+    mockSimulationData.humedad_cana = Math.max(20, +(mockSimulationData.humedad_cana - 0.2).toFixed(1));
+  }
+
+  // Tomate Rojo (parcela-2)
+  if (mockParcelValves['parcela-2']) {
+    mockSimulationData.humedad_tomate = Math.min(95, +(mockSimulationData.humedad_tomate + 4.5).toFixed(1));
+    mockSimulationData.nivel_tanque = Math.max(0, +(mockSimulationData.nivel_tanque - 0.6).toFixed(1));
+    if (mockSimulationData.humedad_tomate >= 85 && mockModoGlobalRiego === 'automatico') {
+      // Corte automático al llegar a humedad óptima
+      mockParcelValves['parcela-2'] = false;
+      mockSimulationData.valvula_tomate = false;
+    }
+  } else {
+    mockSimulationData.humedad_tomate = Math.max(16, +(mockSimulationData.humedad_tomate - 0.2).toFixed(1));
+  }
+
+  // Arroz (parcela-3)
+  if (mockParcelValves['parcela-3']) {
+    mockSimulationData.humedad_arroz = Math.min(100, +(mockSimulationData.humedad_arroz + 3.5).toFixed(1));
+    mockSimulationData.nivel_tanque = Math.max(0, +(mockSimulationData.nivel_tanque - 0.6).toFixed(1));
+    if (mockSimulationData.humedad_arroz >= 98 && mockModoGlobalRiego === 'automatico') {
+      mockParcelValves['parcela-3'] = false;
+      mockSimulationData.valvula_arroz = false;
+    }
+  } else {
+    mockSimulationData.humedad_arroz = Math.max(60, +(mockSimulationData.humedad_arroz - 0.1).toFixed(1));
+  }
+
+  // Parcela 4 (Descanso)
+  if (mockParcelValves['parcela-4']) {
+    mockSimulationData.humedad_descanso = Math.min(90, +((mockSimulationData.humedad_descanso ?? 32) + 4).toFixed(1));
+    mockSimulationData.nivel_tanque = Math.max(0, +(mockSimulationData.nivel_tanque - 0.4).toFixed(1));
+    if ((mockSimulationData.humedad_descanso ?? 32) >= 80 && mockModoGlobalRiego === 'automatico') {
+      mockParcelValves['parcela-4'] = false;
+    }
+  } else {
+    mockSimulationData.humedad_descanso = Math.max(15, +((mockSimulationData.humedad_descanso ?? 32) - 0.2).toFixed(1));
+  }
+
+  // Sincronizar estado de actuadores
   mockSimulationData = {
     ...mockSimulationData,
-    humedad_cana: vary(mockSimulationData.humedad_cana, 3, 20, 95),
-    humedad_tomate: vary(mockSimulationData.humedad_tomate, 4, 15, 85),
-    humedad_arroz: vary(mockSimulationData.humedad_arroz, 2, 60, 100),
-    humedad_descanso: vary(mockSimulationData.humedad_descanso ?? 32, 2, 10, 60),
-    nivel_tanque: vary(mockSimulationData.nivel_tanque, 1.5, 5, 100),
-    temperatura: vary(mockSimulationData.temperatura, 1, 18, 38),
-    humedad_ambiental: vary(mockSimulationData.humedad_ambiental, 2, 30, 95),
-    ph_tierra: vary(mockSimulationData.ph_tierra ?? 6.8, 0.1, 5.0, 8.5),
+    valvula_cana: Boolean(mockParcelValves['parcela-1']),
+    valvula_tomate: Boolean(mockParcelValves['parcela-2']),
+    valvula_arroz: Boolean(mockParcelValves['parcela-3']),
   };
 
   return mockSimulationData;
@@ -174,8 +249,8 @@ function generateMockDashboard(): DashboardSummary {
         temperatura: true,
         ph_suelo: true,
       },
-      valvula_estado: data.valvula_cana ? 'abierta' : 'cerrada',
-      valvula_modo: 'automatico',
+      valvula_estado: mockParcelValves['parcela-1'] ? 'abierta' : 'cerrada',
+      valvula_modo: mockModoGlobalRiego,
       cultivo: cultivoCana,
     },
     {
@@ -211,8 +286,8 @@ function generateMockDashboard(): DashboardSummary {
         temperatura: true,
         ph_suelo: true,
       },
-      valvula_estado: data.valvula_tomate ? 'abierta' : 'cerrada',
-      valvula_modo: 'automatico',
+      valvula_estado: mockParcelValves['parcela-2'] ? 'abierta' : 'cerrada',
+      valvula_modo: mockModoGlobalRiego,
       cultivo: cultivoTomate,
     },
     {
@@ -248,8 +323,8 @@ function generateMockDashboard(): DashboardSummary {
         temperatura: true,
         ph_suelo: true,
       },
-      valvula_estado: data.valvula_arroz ? 'abierta' : 'cerrada',
-      valvula_modo: 'automatico',
+      valvula_estado: mockParcelValves['parcela-3'] ? 'abierta' : 'cerrada',
+      valvula_modo: mockModoGlobalRiego,
       cultivo: cultivoArroz,
     },
     {
@@ -287,8 +362,8 @@ function generateMockDashboard(): DashboardSummary {
         temperatura: true,
         ph_suelo: true,
       },
-      valvula_estado: 'cerrada',
-      valvula_modo: 'manual',
+      valvula_estado: mockParcelValves['parcela-4'] ? 'abierta' : 'cerrada',
+      valvula_modo: mockModoGlobalRiego,
     },
   ];
 
@@ -357,19 +432,58 @@ function generateMockDashboard(): DashboardSummary {
     }
   }
 
+  // Alerta cuando el dron alcanza el 100% de agua (Lleno)
+  if (mockDronState.nivel_agua_porcentaje >= 100 && !mockDronState.mision_activa) {
+    alertas.push({
+      id: 'alerta-dron-lleno',
+      tipo: 'dron_emergencia',
+      severidad: 'baja',
+      titulo: '✅ Dron al 100% de agua (Lleno)',
+      mensaje:
+        'Sensor de nivel máximo detectó tanque completo (40 L). Llave de paso cerrada automáticamente para evitar derrame.',
+      leida: false,
+      activa: true,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  // Alerta cuando la cisterna alcanza el 100% de agua (Llena)
+  if (data.nivel_tanque >= 100) {
+    alertas.push({
+      id: 'alerta-cisterna-llena',
+      tipo: 'nivel_reserva',
+      severidad: 'baja',
+      titulo: '✅ Cisterna Principal al 100% (Llena)',
+      mensaje:
+        'Sensor de boya de corte activado: Tanque lleno (50,000 L). Válvula de pozo/red cerrada automáticamente.',
+      leida: false,
+      activa: true,
+      created_at: new Date().toISOString(),
+    });
+  }
+
   // Lógica de riego automático vs manual por parcela
   if (mockModoGlobalRiego === 'automatico') {
     parcelas.forEach((p) => {
       if (p.tiene_cultivo && p.cultivo) {
         // Modo automático: se activa si humedad < minima y tanque > 20%
         if (p.humedad_suelo < p.cultivo.humedad_minima && data.nivel_tanque >= 20) {
+          mockParcelValves[p.parcela.id] = true;
           p.valvula_estado = 'abierta';
           p.valvula_modo = 'automatico';
         } else if (p.humedad_suelo >= p.cultivo.humedad_optima) {
+          mockParcelValves[p.parcela.id] = false;
           p.valvula_estado = 'cerrada';
           p.valvula_modo = 'automatico';
         }
       }
+    });
+  } else {
+    // Modo manual: cada válvula refleja mockParcelValves
+    parcelas.forEach((p) => {
+      const isOpen = Boolean(mockParcelValves[p.parcela.id]);
+      p.valvula_estado = isOpen ? 'abierta' : 'cerrada';
+      p.valvula_modo = 'manual';
     });
   }
 
@@ -381,10 +495,11 @@ function generateMockDashboard(): DashboardSummary {
         nombre: 'Cisterna Principal',
         tipo: 'cisterna',
         capacidad_litros: 50000,
-        nivel_actual_porcentaje: data.nivel_tanque,
+        nivel_actual_porcentaje: Math.round(data.nivel_tanque),
         nivel_critico_porcentaje: 20,
         nivel_alerta_porcentaje: 35,
         activo: true,
+        llave_recarga_abierta: mockCisternaLlaveLlenado,
       },
     ],
     dron: { ...mockDronState },
@@ -540,17 +655,33 @@ export const api = {
     if (backendUp) {
       return apiPost<Valvula>(`/valves/${valvulaId}/toggle`, {});
     }
-    // Mock toggle
+
+    // Identificar parcela objetivo (acepta tanto 'valvula-1' como 'parcela-1')
+    let targetKey = valvulaId;
+    if (valvulaId.startsWith('valvula-')) {
+      targetKey = valvulaId.replace('valvula-', 'parcela-');
+    }
+
+    mockParcelValves[targetKey] = !mockParcelValves[targetKey];
+    const isOpen = Boolean(mockParcelValves[targetKey]);
+
+    if (targetKey === 'parcela-1') mockSimulationData.valvula_cana = isOpen;
+    if (targetKey === 'parcela-2') mockSimulationData.valvula_tomate = isOpen;
+    if (targetKey === 'parcela-3') mockSimulationData.valvula_arroz = isOpen;
+
+    // Actualizar datos del ciclo
+    updateMockData();
+
     return {
       id: valvulaId,
-      parcela_id: 'parcela-1',
+      parcela_id: targetKey,
       tanque_id: 'tanque-1',
-      nombre: 'Válvula Mock',
+      nombre: `Electroválvula ${targetKey}`,
       posicion_x: 0,
       posicion_y: 0,
       posicion_z: 0,
-      estado: 'abierta',
-      modo: 'manual',
+      estado: isOpen ? 'abierta' : 'cerrada',
+      modo: mockModoGlobalRiego,
       pin_rele: 8,
       voltaje: '12V',
       activa: true,
@@ -622,15 +753,57 @@ export const api = {
   },
 
   activarRiegoManualTodo(): void {
+    mockParcelValves['parcela-1'] = true;
+    mockParcelValves['parcela-2'] = true;
+    mockParcelValves['parcela-3'] = true;
+    mockParcelValves['parcela-4'] = true;
     mockSimulationData.valvula_cana = true;
     mockSimulationData.valvula_tomate = true;
     mockSimulationData.valvula_arroz = true;
+    mockCustomParcels.forEach((cp) => {
+      mockParcelValves[cp.parcela.id] = true;
+      cp.valvula_estado = 'abierta';
+    });
+    updateMockData();
   },
 
   detenerRiegoTodo(): void {
+    mockParcelValves['parcela-1'] = false;
+    mockParcelValves['parcela-2'] = false;
+    mockParcelValves['parcela-3'] = false;
+    mockParcelValves['parcela-4'] = false;
     mockSimulationData.valvula_cana = false;
     mockSimulationData.valvula_tomate = false;
     mockSimulationData.valvula_arroz = false;
+    mockCustomParcels.forEach((cp) => {
+      mockParcelValves[cp.parcela.id] = false;
+      cp.valvula_estado = 'cerrada';
+    });
+    updateMockData();
+  },
+
+  // ---- Control de Cisterna Principal (Llenado desde Red / Pozo) ----
+  toggleCisternaLlave(): { abierta: boolean; message: string; nivel: number } {
+    if (!mockCisternaLlaveLlenado && mockSimulationData.nivel_tanque >= 100) {
+      return {
+        abierta: false,
+        message: 'La cisterna ya está llena al 100% (50,000 L). Boya de nivel activa.',
+        nivel: 100,
+      };
+    }
+    mockCisternaLlaveLlenado = !mockCisternaLlaveLlenado;
+    updateMockData();
+    return {
+      abierta: mockCisternaLlaveLlenado,
+      message: mockCisternaLlaveLlenado
+        ? '🚰 Válvula de red/pozo abierta. Suministrando agua a la cisterna...'
+        : 'Válvula de cisterna cerrada.',
+      nivel: mockSimulationData.nivel_tanque,
+    };
+  },
+
+  isCisternaLlaveAbierta(): boolean {
+    return mockCisternaLlaveLlenado;
   },
 
   // ---- Control del Sistema de Dron de Riego de Emergencia ----
@@ -638,7 +811,7 @@ export const api = {
     return { ...mockDronState };
   },
 
-  // Sensor de presencia de objeto en la estación de recarga
+  // Sensor de presencia de objeto en la estación de recarga (simula HC-SR04)
   toggleDronPresencia(): boolean {
     mockDronState.en_posicion_recarga = !mockDronState.en_posicion_recarga;
     // Si se retira el dron de la base, se cierra la llave de paso por seguridad
@@ -653,15 +826,23 @@ export const api = {
     if (!mockDronState.en_posicion_recarga) {
       return {
         success: false,
-        message: 'Acceso denegado: El sensor de presencia no detecta al dron en la plataforma de recarga.',
+        message: 'Acceso denegado: El sensor de presencia ultrasónico no detecta ningún objeto en la plataforma de recarga.',
+        abierta: false,
+      };
+    }
+    if (!mockDronState.llave_paso_recarga_abierta && mockDronState.nivel_agua_porcentaje >= 100) {
+      return {
+        success: false,
+        message: 'Tanque del dron al 100% (Lleno). El flotador de corte impide abrir la llave para evitar desbordamiento.',
         abierta: false,
       };
     }
     mockDronState.llave_paso_recarga_abierta = !mockDronState.llave_paso_recarga_abierta;
+    updateMockData();
     return {
       success: true,
       message: mockDronState.llave_paso_recarga_abierta
-        ? 'Llave de paso abierta. Suministrando agua al tanque del dron...'
+        ? '🚰 Llave de paso abierta. Suministrando agua al tanque del dron...'
         : 'Llave de paso cerrada.',
       abierta: mockDronState.llave_paso_recarga_abierta,
     };
@@ -678,6 +859,7 @@ export const api = {
     mockDronState.mision_activa = true;
     mockDronState.estado = 'regando';
     mockDronState.ultimo_despacho = new Date().toISOString();
+    updateMockData();
     return {
       success: true,
       message: 'Misión de riego por dron de emergencia iniciada con éxito sobre todo el sembradío.',
@@ -687,5 +869,7 @@ export const api = {
   // Llenado manual del dron
   llenarDronManual(): void {
     mockDronState.nivel_agua_porcentaje = 100;
+    mockDronState.llave_paso_recarga_abierta = false;
+    updateMockData();
   },
 };

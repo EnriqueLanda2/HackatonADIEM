@@ -312,27 +312,20 @@ function ParcelZone({ parcela, position, onClick, selected }: ParcelZoneProps) {
       </mesh>
 
       {/* ===================================================================== */}
-      {/* ETIQUETA FLOTANTE CON MAYOR PADDING Y ELEVACIÓN (NO TAPA EL CULTIVO)  */}
+      {/* ETIQUETA FLOTANTE DISCRETA (MINIMALISTA, NO OBSTRUYE LA VISTA 3D)     */}
       {/* ===================================================================== */}
-      <Html position={[0, 2.5, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="bg-[#111111]/92 text-white px-4 py-2.5 rounded-2xl text-xs whitespace-nowrap border border-white/20 shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 transition-transform hover:scale-105">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-sm tracking-tight text-white">{parcela.parcela.nombre}</span>
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white shadow-sm"
-              style={{ backgroundColor: status.color }}
-            >
-              {status.label}
+      <Html position={[0, 2.3, 0]} center style={{ pointerEvents: 'none' }}>
+        <div className="bg-zinc-950/80 backdrop-blur-md px-3 py-1 rounded-full text-xs whitespace-nowrap border border-white/10 shadow-lg flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+          <span className="font-semibold text-zinc-100 text-[11px]">{parcela.parcela.nombre}</span>
+          <span className="text-zinc-600 text-[10px]">·</span>
+          <span className="font-bold text-sky-400 text-[11px]">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
+          {isOpen && (
+            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Regando
             </span>
-          </div>
-
-          <div className="text-[11px] text-zinc-300 font-medium flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-            <span className="text-sky-400 font-bold">💧 {parcela.humedad_suelo.toFixed(0)}%</span>
-            <span className="text-zinc-500">·</span>
-            <span className="text-amber-300 font-semibold">🌡️ {parcela.temperatura.toFixed(1)}°C</span>
-            <span className="text-zinc-500">·</span>
-            <span className="text-emerald-400 font-semibold">🧪 pH {phVal.toFixed(1)}</span>
-          </div>
+          )}
         </div>
       </Html>
     </group>

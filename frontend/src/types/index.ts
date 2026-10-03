@@ -108,6 +108,7 @@ export interface TanqueAgua {
   nivel_critico_porcentaje: number;
   nivel_alerta_porcentaje: number;
   activo: boolean;
+  llave_recarga_abierta?: boolean;
 }
 
 // ---- Sistema de Dron de Riego de Emergencia ----

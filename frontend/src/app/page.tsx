@@ -34,7 +34,7 @@ const TerrainScene3D = dynamic(
 );
 
 export default function DashboardPage() {
-  const { data, loading, error, refresh } = useDashboard(3000);
+  const { data, loading, error, refresh } = useDashboard(1200);
   const { isAvailable: backendAvailable, checking: backendChecking } = useBackendStatus();
   const [selectedParcelaId, setSelectedParcelaId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -84,6 +84,12 @@ export default function DashboardPage() {
     },
     [refresh]
   );
+
+  // Recarga de cisterna desde pozo/red
+  const handleToggleRecargaCisterna = useCallback(() => {
+    api.toggleCisternaLlave();
+    refresh();
+  }, [refresh]);
 
   // Descartar alerta
   const handleDismissAlert = useCallback(
@@ -278,7 +284,12 @@ export default function DashboardPage() {
               <WeatherWidgetIOS clima={climaDisplay} />
 
               {/* Cisterna Principal */}
-              {data.tanques[0] && <TankPanel tanque={data.tanques[0]} />}
+              {data.tanques[0] && (
+                <TankPanel
+                  tanque={data.tanques[0]}
+                  onToggleRecarga={handleToggleRecargaCisterna}
+                />
+              )}
             </div>
 
           </div>

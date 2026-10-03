@@ -91,31 +91,62 @@ export function Header({
 // =============================================================================
 // Panel de Cisterna
 // =============================================================================
-export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
+export function TankPanel({
+  tanque,
+  onToggleRecarga,
+}: {
+  tanque: TanqueAgua;
+  onToggleRecarga?: () => void;
+}) {
   const nivel = tanque.nivel_actual_porcentaje;
   const isCritical = nivel < 25;
+  const isFull = nivel >= 100;
   const volumenActual = ((tanque.capacidad_litros * nivel) / 100 / 1000).toFixed(1);
   const capacidadTotal = (tanque.capacidad_litros / 1000).toFixed(0);
+  const isOpen = tanque.llave_recarga_abierta;
 
   return (
     <div className="bg-[#18181b] rounded-2xl p-5 border border-white/5 flex flex-col justify-between shadow-md">
-      <div className="flex items-center gap-2 text-white font-semibold text-base mb-3">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-zinc-400"
-        >
-          <ellipse cx="12" cy="5" rx="9" ry="3" />
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-        </svg>
-        <span>Cisterna Principal</span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 text-white font-semibold text-base">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-zinc-400"
+          >
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          </svg>
+          <span>Cisterna Principal</span>
+        </div>
+
+        {onToggleRecarga && (
+          <button
+            onClick={onToggleRecarga}
+            className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition-all flex items-center gap-1.5 active:scale-95 ${
+              isOpen
+                ? 'bg-blue-600 text-white border-blue-400 shadow-md animate-pulse'
+                : isFull
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 cursor-default'
+                : 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            {isOpen ? (
+              <>🚰 Llenando cisterna...</>
+            ) : isFull ? (
+              <>✅ Cisterna Llena (100%)</>
+            ) : (
+              <>🚰 Abrir Llave de Pozo</>
+            )}
+          </button>
+        )}
       </div>
 
       <div className="flex items-baseline gap-2.5 mb-3">
@@ -125,12 +156,17 @@ export function TankPanel({ tanque }: { tanque: TanqueAgua }) {
         <span className="text-sm text-zinc-400 font-normal">
           {volumenActual} / {capacidadTotal} m³
         </span>
+        {isFull && (
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            Sensor de boya: Corte activo
+          </span>
+        )}
       </div>
 
       <div className="w-full bg-zinc-800/80 h-2 rounded-full overflow-hidden">
         <div
-          className={`h-full transition-all duration-1000 ${
-            isCritical ? 'bg-rose-500' : 'bg-blue-500'
+          className={`h-full transition-all duration-700 ${
+            isCritical ? 'bg-rose-500' : isFull ? 'bg-emerald-500' : 'bg-blue-500'
           }`}
           style={{ width: `${Math.min(100, Math.max(0, nivel))}%` }}
         />
